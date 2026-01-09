@@ -7,6 +7,7 @@ class DriversService extends DataHandler {
     private PropNames: string[] = Object.getOwnPropertyNames(new Drivers());
 
     public async Add(row: Drivers) {
+        
         let query = this.Db.query(`insert into ${this.TableName} ("UserNam","TlfNam") 
                                    values ("${row.DesDrive}", "r${row.TlfNam}")`);
 

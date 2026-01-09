@@ -21,11 +21,16 @@
 // });
 
 // client.initialize();
+import Grupos from "./Models/Grupos";
+import SqlTableQueryMaker from "./Utils/SqlTableQueryMaker";
 
-import StringBuilder from "./Utils/StringBuilder.ts";
+let grpModel = new Grupos();
+grpModel.IdGrp = 45;
+grpModel.DesGrp = "ElPepe";
+grpModel.NumGrp = "Chavez";
+grpModel.IsAct = 1;
+grpModel.RegDat = new Date().toLocaleDateString(); 
 
-let data = new StringBuilder("Hola");
-data.Append(" Como estas ");
-data.Append("Espero que bien causa");
+let instancia = new SqlTableQueryMaker(Grupos.name, Object.getOwnPropertyNames(new Grupos()));
 
-console.log(data.ToString());
+console.log(instancia.Select());
