@@ -71,8 +71,11 @@ export default class SqlTableQueryMaker {
         return Query.ToString();
     }
 
-    public Select(limit: number = 0): string {
+    public Select(WhereSentence: string = "", limit: number = 0): string {
         let Query = new StringBuilder(`select * from ${this.Tablename}`);
+
+        if(WhereSentence != "")
+            Query.Append(` WHERE ${WhereSentence}`);
 
         if(limit != 0)
             Query.Append(` limit ${limit} `);

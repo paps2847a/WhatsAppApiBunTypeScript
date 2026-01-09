@@ -6,10 +6,9 @@ export default class DbHandler
     private DbName: string = "TravelOps.sqlite";
     private Db = new Database(this.DbName, { create: true });
 
-    protected async AddAsync(StrQuery: string): Promise<void>
+    protected async ExecuteQuery(StrQuery: string): Promise<void>
     {
-        let data = this.Db.query(StrQuery);
-        
+        this.Db.run(StrQuery);
     }
 
     protected async GetAllRecordsAsync<T extends object>(StrQuery: string): Promise<T[]>

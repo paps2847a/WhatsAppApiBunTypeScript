@@ -1,21 +1,21 @@
 import DataHandler from "../Db/DataHandler.ts";
-import Drivers from "../Models/Drivers.ts";
+import GrpRel from "../Models/GrpRel.ts";
 import SqlTableQueryMaker from "../Utils/SqlTableQueryMaker.ts";
 
-class DriversService extends DataHandler {
-    private SentenceMaker: SqlTableQueryMaker = new SqlTableQueryMaker(Drivers.name, Object.keys(new Drivers()));
+class GrpRelService extends DataHandler {
+    private SentenceMaker: SqlTableQueryMaker = new SqlTableQueryMaker(GrpRel.name, Object.keys(new GrpRel()));
 
-    public async Add(row: Drivers) {
+    public async Add(row: GrpRel) {
         let Sentence: string = this.SentenceMaker.InsertInto(row);
         await this.ExecuteQuery(Sentence);
     }
 
-    public async Update(row: Drivers) {
+    public async Update(row: GrpRel) {
         let Sentence: string = this.SentenceMaker.Update(row);
         await this.ExecuteQuery(Sentence);
     }
 
-    public async Delete(row: Drivers) {
+    public async Delete(row: GrpRel) {
         let Sentence: string = this.SentenceMaker.Delete(row);
         await this.ExecuteQuery(Sentence);
     }
