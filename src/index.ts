@@ -22,6 +22,10 @@
 
 // client.initialize();
 
-import Drivers from "./Models/Drivers";
+import StringBuilder from "./Utils/StringBuilder.ts";
 
-console.log(Drivers.prototype);
+let data = new StringBuilder("Hola");
+data.Append(" Como estas ");
+data.Append("Espero que bien causa");
+
+console.log(data.ToString());
