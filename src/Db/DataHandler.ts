@@ -1,19 +1,14 @@
 import { Database } from "bun:sqlite";
-import Grupos from "../Models/Grupos";
-
-export default class DbHandler
-{
+export default class DbHandler {
     private DbName: string = "TravelOps.sqlite";
     private Db = new Database(this.DbName, { create: true });
 
-    protected async ExecuteQuery(StrQuery: string): Promise<void>
-    {
+    protected ExecuteQuery(StrQuery: string): void {
         this.Db.run(StrQuery);
     }
 
-    protected async GetAllRecordsAsync<T extends object>(StrQuery: string): Promise<T[]>
-    {
-        let queryData = this.Db.prepare(StrQuery);
+    protected GetAllRecords<T extends object>(StrQuery: string): T[] {
+        const queryData = this.Db.prepare(StrQuery);
         return queryData.all() as T[];
     }
 }

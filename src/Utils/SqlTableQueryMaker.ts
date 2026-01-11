@@ -15,7 +15,13 @@ export default class SqlTableQueryMaker {
         return (b - a) == 1 ? true : false;
     }
 
-    public InsertInto(Row: Object): string {
+    private formatValue(value: unknown): string {
+        if (value === null || value === undefined) return "NULL";
+        if (typeof value === "string") return `'${value.replace(/'/g, "''")}'`;
+        return `${value}`;
+    }
+
+    public InsertInto(Row: Record<string, unknown>): string {
         let Query = new StringBuilder(`insert into ${this.Tablename} (`);
 
         for (let item = 0; item < this.TableColumns.length; item++) {
@@ -32,10 +38,11 @@ export default class SqlTableQueryMaker {
         DataFromObject = DataFromObject.slice(1, DataFromObject.length);
 
         for (let item = 0; item < DataFromObject.length; item++) {
+            const formatted = this.formatValue(DataFromObject[item]);
             if (this.LastOne(item, DataFromObject.length))
-                Query.Append(` ${DataFromObject[item]} `);
+                Query.Append(` ${formatted} `);
             else
-                Query.Append(` ${DataFromObject[item]}, `);
+                Query.Append(` ${formatted}, `);
         }
 
         Query.Append(") ");
@@ -43,19 +50,20 @@ export default class SqlTableQueryMaker {
         return Query.ToString();
     }
 
-    public Update(Row: Object): string {
+    public Update(Row: Record<string, unknown>): string {
         let DataFromObject = Object.values(Row);
-        let Pk = DataFromObject[0];
+        const Pk = this.formatValue(DataFromObject[0]);
 
         DataFromObject = DataFromObject.slice(1, DataFromObject.length);
 
         let Query = new StringBuilder(`update ${this.Tablename} SET `);
 
         for (let item = 0; item < this.TableColumns.length; item++) {
+            const formatted = this.formatValue(DataFromObject[item]);
             if (this.LastOne(item, this.TableColumns.length))
-                Query.Append(` ${this.TableColumns[item]} = '${DataFromObject[item]}' `);
+                Query.Append(` ${this.TableColumns[item]} = ${formatted} `);
             else
-                Query.Append(` ${this.TableColumns[item]} = '${DataFromObject[item]}', `);
+                Query.Append(` ${this.TableColumns[item]} = ${formatted}, `);
         }
 
         Query.Append(`WHERE ${this.PkColumnsName} = ${Pk}`);
@@ -63,11 +71,11 @@ export default class SqlTableQueryMaker {
         return Query.ToString();
     }
 
-    public Delete(Row: Object): string {
-        let DataFromObject = Object.values(Row);
-        let Pk = DataFromObject[0];
+    public Delete(Row: Record<string, unknown>): string {
+        const dataFromObject = Object.values(Row);
+        const Pk = this.formatValue(dataFromObject[0]);
 
-        let Query = new StringBuilder(`delete from ${this.Tablename} WHERE ${this.PkColumnsName} = ${Pk}`);
+        const Query = new StringBuilder(`delete from ${this.Tablename} WHERE ${this.PkColumnsName} = ${Pk}`);
         return Query.ToString();
     }
 

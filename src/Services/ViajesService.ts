@@ -1,28 +1,30 @@
-import DataHandler from "../Db/DataHandler.ts";
-import Viajes from "../Models/Viajes.ts";
-import SqlTableQueryMaker from "../Utils/SqlTableQueryMaker.ts";
+import DataHandler from "../Db/DataHandler";
+import Viajes from "../Models/Viajes";
+import SqlTableQueryMaker from "../Utils/SqlTableQueryMaker";
 
 class ViajesService extends DataHandler {
-    private SentenceMaker: SqlTableQueryMaker = new SqlTableQueryMaker(Viajes.name, Object.keys(new Viajes()));
+    private SentenceMaker: SqlTableQueryMaker = new SqlTableQueryMaker(Viajes.name, Object.keys(new Viajes() as unknown as Record<string, unknown>));
 
-    public async Add(row: Viajes) {
-        let Sentence: string = this.SentenceMaker.InsertInto(row);
-        await this.ExecuteQuery(Sentence);
+    public Add(row: Viajes) {
+        const Sentence: string = this.SentenceMaker.InsertInto(row as unknown as Record<string, unknown>);
+        this.ExecuteQuery(Sentence);
     }
 
-    public async Update(row: Viajes) {
-        let Sentence: string = this.SentenceMaker.Update(row);
-        await this.ExecuteQuery(Sentence);
+    public Update(row: Viajes) {
+        const Sentence: string = this.SentenceMaker.Update(row as unknown as Record<string, unknown>);
+        this.ExecuteQuery(Sentence);
     }
 
-    public async Delete(row: Viajes) {
-        let Sentence: string = this.SentenceMaker.Delete(row);
-        await this.ExecuteQuery(Sentence);
+    public Delete(row: Viajes) {
+        const Sentence: string = this.SentenceMaker.Delete(row as unknown as Record<string, unknown>);
+        this.ExecuteQuery(Sentence);
     }
 
-    public async Get() {
-        let Sentence: string = this.SentenceMaker.Select();
-        await this.ExecuteQuery(Sentence);
+    public Get() {
+        const Sentence: string = this.SentenceMaker.Select();
+        return this.GetAllRecords<Viajes>(Sentence);
     }
 
-}   
+}
+
+export default ViajesService;
