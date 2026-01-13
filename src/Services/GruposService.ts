@@ -25,6 +25,11 @@ class GruposService extends DataHandler {
         return this.GetAllRecords<Grupos>(Sentence);
     }
 
+    public Exist(Column: string, ValueSearch: any) {
+        const Sentence: string = this.SentenceMaker.Exist(Column, ValueSearch);
+        return this.GetAllRecords<Grupos>(Sentence);
+    }
+
 }
 
 export default GruposService;
