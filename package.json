@@ -13,6 +13,7 @@
     "start": "bun ./src/index.ts"
   },
   "dependencies": {
+    "picocolors": "^1.1.1",
     "qrcode-terminal": "^0.12.0",
     "whatsapp-web.js": "^1.34.4"
   }
