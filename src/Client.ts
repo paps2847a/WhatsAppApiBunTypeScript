@@ -2,6 +2,7 @@ import { Client, LocalAuth, type Chat, type GroupChat } from 'whatsapp-web.js';
 import qrcode from 'qrcode-terminal';
 import GruposService from './Services/GruposService';
 import Grupos from './Models/Grupos';
+import UsingTodayService from './Services/UsingToday';
 
 //cache
 const GroupsCacheData: Map<string, string> = new Map();
@@ -56,7 +57,13 @@ client.on('message', async (msg) => {
     if (!ChatRegister.isGroup)
         return;
 
-    
+    let _UsingTransport: UsingTodayService = new UsingTodayService();
+    let _UserService: UsingTodayService = new UsingTodayService();
+    if(msg.body.includes("usare") || msg.body.includes("Usare"))
+    {
+
+
+    }
 
 });
 
