@@ -20,13 +20,8 @@ class GruposService extends DataHandler {
         this.ExecuteQuery(Sentence);
     }
 
-    public Get() {
-        const Sentence: string = this.SentenceMaker.Select();
-        return this.GetAllRecords<Grupos>(Sentence);
-    }
-
-    public Exist(Column: string, ValueSearch: any) {
-        const Sentence: string = this.SentenceMaker.Exist(Column, ValueSearch);
+    public Get(WhereSentence: string = "", limit: number = 0) {
+        const Sentence: string = this.SentenceMaker.Select(WhereSentence, limit);
         return this.GetAllRecords<Grupos>(Sentence);
     }
 

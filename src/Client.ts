@@ -2,7 +2,6 @@ import { Client, LocalAuth, type Chat, type GroupChat } from 'whatsapp-web.js';
 import qrcode from 'qrcode-terminal';
 import GruposService from './Services/GruposService';
 import Grupos from './Models/Grupos';
-import type GroupDTO from './types/GroupDTO';
 
 const client: Client = new Client({
     authStrategy: new LocalAuth(),
@@ -15,38 +14,37 @@ const client: Client = new Client({
 });
 
 client.on('ready', async () => {
-    let GroupsData: Chat[] | GroupChat[] = await client.getChats();
-    GroupsData = GroupsData.filter(chat => chat.isGroup) as GroupChat[];
+    let GroupSummaries: Chat[] | GroupChat[] = await client.getChats();
+    GroupSummaries = GroupSummaries.filter(chat => (chat.isGroup) 
+    && (chat.id._serialized != null) 
+    && (chat.id._serialized != "") 
+    && (chat.name != null) 
+    && (chat.name != "")) as GroupChat[];
 
-    let GroupSummaries: GroupDTO[] = GroupsData.map(group => {
-        return {
-            NumberStr: group.id._serialized,
-            NameStr: group.name
-        };
-    });
-
-    if(GroupSummaries.length === 0)
+    if (GroupSummaries.length === 0)
         return;
 
     let _GroupService: GruposService = new GruposService();
-    GroupSummaries.forEach(async (group) => {
-        let GroupDataToSave = new Grupos();
-        GroupDataToSave.NumGrp = group.NumberStr;
-        GroupDataToSave.DesGrp = group.NameStr;
+    GroupSummaries.forEach((group) => {
+        if (_GroupService.Get(` NumGrp = ${group.id._serialized}`).length == 0) {
+            let GroupDataToSave = new Grupos();
+            GroupDataToSave.NumGrp = group.id._serialized;
+            GroupDataToSave.DesGrp = group.name;
 
-        _GroupService.Add(GroupDataToSave as Grupos);
+            _GroupService.Add(GroupDataToSave as Grupos);
+        }
     });
 
     console.log('Client is ready!');
 });
 
 client.on('qr', qr => {
-    qrcode.generate(qr, {small: true});
+    qrcode.generate(qr, { small: true });
 });
 
 client.on('message', async (msg) => {
     let ChatRegister: Chat = await msg.getChat();
-    if(!ChatRegister.isGroup)
+    if (!ChatRegister.isGroup)
         return;
 
 });

@@ -90,13 +90,4 @@ export default class SqlTableQueryMaker {
 
         return Query.ToString();
     }
-
-    public Exist(Column: string, ValueSearch: any): string
-    {
-        let Query = new StringBuilder(`select count(*) from ${this.Tablename}`);
-        Query.Append(` WHERE ${Column} = '${ValueSearch}'`);
-        
-        return Query.ToString();
-    }
-
 }
