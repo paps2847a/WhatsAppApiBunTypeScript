@@ -3,6 +3,9 @@ import qrcode from 'qrcode-terminal';
 import GruposService from './Services/GruposService';
 import Grupos from './Models/Grupos';
 
+//cache
+const GroupsCacheData: Map<string, string> = new Map();
+
 const client: Client = new Client({
     authStrategy: new LocalAuth(),
     //ESTE ES EL TIPO DE CONFIGURACION QUE AGARRA PUPPETEER EN UBUNTU, EXISTE UN PROBLEMA CON EL SANDBOX
@@ -15,11 +18,13 @@ const client: Client = new Client({
 
 client.on('ready', async () => {
     let GroupSummaries: Chat[] | GroupChat[] = await client.getChats();
-    GroupSummaries = GroupSummaries.filter(chat => (chat.isGroup) 
-    && (chat.id._serialized != null) 
-    && (chat.id._serialized != "") 
-    && (chat.name != null) 
-    && (chat.name != "")) as GroupChat[];
+    GroupSummaries = GroupSummaries.filter(chat => (chat.isGroup)
+        && (chat.id._serialized != null)
+        && (chat.id._serialized != "")
+        && (chat.name != null)
+        && (chat.name != "")
+        //Verificacion de pertencia a ruta de transporte temporal
+        && (chat.name.includes("Ruta") || chat.name.includes("ruta"))) as GroupChat[];
 
     if (GroupSummaries.length === 0)
         return;
@@ -33,6 +38,10 @@ client.on('ready', async () => {
 
             _GroupService.Add(GroupDataToSave as Grupos);
         }
+
+        //La funcion no regresa la PK del registro cuandoo este es guardado
+        //Hay que tener en cuenta esto
+        GroupsCacheData.set(group.name, group.id._serialized);
     });
 
     console.log('Client is ready!');
@@ -46,6 +55,8 @@ client.on('message', async (msg) => {
     let ChatRegister: Chat = await msg.getChat();
     if (!ChatRegister.isGroup)
         return;
+
+    
 
 });
 
