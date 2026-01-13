@@ -3,6 +3,10 @@ import qrcode from 'qrcode-terminal';
 import GruposService from './Services/GruposService';
 import Grupos from './Models/Grupos';
 import UsingTodayService from './Services/UsingToday';
+import Logger from "./Utils/Logger";
+import type Usuarios from './Models/Usuarios';
+import UsuariosService from './Services/UsuariosService';
+import GrpRelService from './Services/GrpRelService';
 
 //cache
 const GroupsCacheData: Map<string, string> = new Map();
@@ -25,12 +29,16 @@ client.on('ready', async () => {
         && (chat.name != null)
         && (chat.name != "")
         //Verificacion de pertencia a ruta de transporte temporal
-        && (chat.name.includes("Ruta") || chat.name.includes("ruta"))) as GroupChat[];
+        && (chat.name.includes("botalon") || chat.name.includes("Botalon"))) as GroupChat[];
 
     if (GroupSummaries.length === 0)
         return;
 
+    //Se cargan los datos iniciales de grupos, usuarios y relaciones de grupos-usuarios
+    //HACE FALTA AGREGAR LOGICA DE DATOS EN BASE DE DATOS
     let _GroupService: GruposService = new GruposService();
+    let _UsuarioService: UsuariosService = new UsuariosService();
+    let _GroupRelService: GrpRelService = new GrpRelService();
     GroupSummaries.forEach((group) => {
         if (_GroupService.Get(` NumGrp = ${group.id._serialized}`).length == 0) {
             let GroupDataToSave = new Grupos();
@@ -40,12 +48,14 @@ client.on('ready', async () => {
             _GroupService.Add(GroupDataToSave as Grupos);
         }
 
+
+
         //La funcion no regresa la PK del registro cuandoo este es guardado
         //Hay que tener en cuenta esto
         GroupsCacheData.set(group.name, group.id._serialized);
     });
 
-    console.log('Client is ready!');
+    Logger.Log('Client is ready!');
 });
 
 client.on('qr', qr => {
