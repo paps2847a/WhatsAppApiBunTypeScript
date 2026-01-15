@@ -5,9 +5,9 @@ import SqlTableQueryMaker from "../Utils/SqlTableQueryMaker";
 class DriversService extends DataHandler {
     private SentenceMaker: SqlTableQueryMaker = new SqlTableQueryMaker(Drivers.name, Object.keys(new Drivers() as unknown as Record<string, unknown>));
 
-    public Add(row: Drivers) {
+    public Add(row: Drivers): number {
         const Sentence: string = this.SentenceMaker.InsertInto(row as unknown as Record<string, unknown>);
-        this.ExecuteQuery(Sentence);
+        return this.AddRow(Sentence);
     }
 
     public Update(row: Drivers) {
@@ -20,8 +20,8 @@ class DriversService extends DataHandler {
         this.ExecuteQuery(Sentence);
     }
 
-    public Get() {
-        const Sentence: string = this.SentenceMaker.Select();
+    public Get(WhereSentence: string = "", limit: number = 0) {
+        const Sentence: string = this.SentenceMaker.Select(WhereSentence, limit);
         return this.GetAllRecords<Drivers>(Sentence);
     }
 

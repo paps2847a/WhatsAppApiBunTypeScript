@@ -46,6 +46,7 @@ export default class SqlTableQueryMaker {
         }
 
         Query.Append(") ");
+        Query.Append(` RETURNING last_insert_rowid()`);
 
         return Query.ToString();
     }

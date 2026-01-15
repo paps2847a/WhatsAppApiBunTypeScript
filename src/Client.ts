@@ -2,11 +2,12 @@ import { Client, LocalAuth, type Chat, type GroupChat } from 'whatsapp-web.js';
 import qrcode from 'qrcode-terminal';
 import GruposService from './Services/GruposService';
 import Grupos from './Models/Grupos';
-import UsingTodayService from './Services/UsingToday';
+import UsingTodayService from './Services/UsingTodayService';
 import Logger from "./Utils/Logger";
-import type Usuarios from './Models/Usuarios';
+import Usuarios from './Models/Usuarios';
 import UsuariosService from './Services/UsuariosService';
 import GrpRelService from './Services/GrpRelService';
+import GrpRel from './Models/GrpRel';
 
 //cache
 const GroupsCacheData: Map<string, string> = new Map();
@@ -22,8 +23,8 @@ const client: Client = new Client({
 });
 
 client.on('ready', async () => {
-    let GroupSummaries: Chat[] | GroupChat[] = await client.getChats();
-    GroupSummaries = GroupSummaries.filter(chat => (chat.isGroup)
+    let UnorderesGroupsData: Chat[] = await client.getChats();
+    let GroupSummaries: GroupChat[] = UnorderesGroupsData.filter(chat => (chat.isGroup)
         && (chat.id._serialized != null)
         && (chat.id._serialized != "")
         && (chat.name != null)
@@ -39,6 +40,7 @@ client.on('ready', async () => {
     let _GroupService: GruposService = new GruposService();
     let _UsuarioService: UsuariosService = new UsuariosService();
     let _GroupRelService: GrpRelService = new GrpRelService();
+
     GroupSummaries.forEach((group) => {
         if (_GroupService.Get(` NumGrp = ${group.id._serialized}`).length == 0) {
             let GroupDataToSave = new Grupos();
@@ -48,7 +50,28 @@ client.on('ready', async () => {
             _GroupService.Add(GroupDataToSave as Grupos);
         }
 
+        group.participants.forEach(async (participant) => {
+            let UserData: Usuarios[] = _UsuarioService.Get(` TlfNam = '${participant.id._serialized}'`);
+            if (UserData.length == 0) {
+                let NewUserData = new Usuarios();
+                NewUserData.TlfNam = participant.id._serialized;
+                NewUserData.IdUsr = _UsuarioService.Add(NewUserData);
 
+                UserData = [NewUserData];
+            }
+
+            //Pueden existir multiples grupo con misma id?
+            let GroupData = _GroupService.Get(` NumGrp = ${group.id._serialized}`);
+            let GroupDataRel = _GroupRelService.Get(` IdUsr = ${UserData[0]?.IdUsr} AND IdGrp = ${GroupData[0]?.IdGrp}`);
+            
+            if (GroupDataRel.length == 0) {
+                let NewGroupRel = new GrpRel();
+                NewGroupRel.IdGrp = GroupData[0]?.IdGrp as number;
+                NewGroupRel.IdUsr = UserData[0]?.IdUsr as number;
+
+                _GroupRelService.Add(NewGroupRel);
+            }
+        });
 
         //La funcion no regresa la PK del registro cuandoo este es guardado
         //Hay que tener en cuenta esto
@@ -69,8 +92,7 @@ client.on('message', async (msg) => {
 
     let _UsingTransport: UsingTodayService = new UsingTodayService();
     let _UserService: UsingTodayService = new UsingTodayService();
-    if(msg.body.includes("usare") || msg.body.includes("Usare"))
-    {
+    if (msg.body.includes("usare") || msg.body.includes("Usare")) {
 
 
     }
