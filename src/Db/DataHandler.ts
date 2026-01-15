@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 export default class DbHandler {
     private DbName: string = "TravelOps.sqlite";
-    private Db = new Database(this.DbName, { create: true });
+    private Db = new Database(this.DbName, { readwrite: true });
 
     protected ExecuteQuery(StrQuery: string): void {
         this.Db.run(StrQuery);

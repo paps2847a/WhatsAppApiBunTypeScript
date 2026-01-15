@@ -42,7 +42,7 @@ client.on('ready', async () => {
     let _GroupRelService: GrpRelService = new GrpRelService();
 
     GroupSummaries.forEach((group) => {
-        if (_GroupService.Get(` NumGrp = ${group.id._serialized}`).length == 0) {
+        if (_GroupService.Get(`NumGrp = '${group.id._serialized}'`).length == 0) {
             let GroupDataToSave = new Grupos();
             GroupDataToSave.NumGrp = group.id._serialized;
             GroupDataToSave.DesGrp = group.name;
