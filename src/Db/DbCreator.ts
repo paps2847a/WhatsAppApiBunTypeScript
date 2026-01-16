@@ -6,7 +6,8 @@ export default class DbCreator {
     private Root: string = "./src/Db/";
     private DbName: string = `${this.Root}TravelOps.sqlite`;
     private DbTblesScript: string = `${this.Root}SqlDbScript.txt`;
-    protected Db = new Database(this.DbName, { create: true });
+
+    protected Db = new Database(this.DbName, { create: true, strict: true });
 
     public async CreateDb() {
         let SqliteDb = file(this.DbName);
