@@ -1,8 +1,7 @@
 import { Database } from "bun:sqlite";
-export default class DbHandler {
-    private DbName: string = "TravelOps.sqlite";
-    private Db = new Database(this.DbName, { readwrite: true });
+import DbCreator from "./DbCreator";
 
+export default class DbHandler extends DbCreator {
     protected ExecuteQuery(StrQuery: string): void {
         this.Db.run(StrQuery);
     }

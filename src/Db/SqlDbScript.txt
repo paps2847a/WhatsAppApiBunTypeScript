@@ -1,0 +1,60 @@
+CREATE TABLE "Drivers" (
+	"IdDrive"	INTEGER NOT NULL,
+	"DesDrive"	TEXT,
+	"TlfNam"	TEXT,
+	"IsAct"	INTEGER,
+	"IsExtrn"	INTEGER,
+	"RegDat"	TEXT,
+	PRIMARY KEY("IdDrive" AUTOINCREMENT)
+);
+
+CREATE TABLE "GrpRel" (
+	"IdRel"	INTEGER NOT NULL,
+	"IdGrp"	INTEGER,
+	"IdUsr"	INTEGER,
+	"IsAct"	INTEGER,
+	"RegDat"	TEXT,
+	PRIMARY KEY("IdRel" AUTOINCREMENT),
+	FOREIGN KEY("IdGrp") REFERENCES "Grupos"("IdGrp"),
+	FOREIGN KEY("IdUsr") REFERENCES "Usuarios"("IdUsr")
+);
+
+CREATE TABLE "Grupos" (
+	"IdGrp"	INTEGER NOT NULL,
+	"DesGrp"	TEXT,
+	"NumGrp"	TEXT,
+	"IsAct"	INTEGER,
+	"RegDat"	TEXT,
+	PRIMARY KEY("IdGrp" AUTOINCREMENT)
+);
+
+CREATE TABLE "UsingToday" (
+	"IdUsing"	INTEGER NOT NULL,
+	"IdRel"	INTEGER,
+	"IsUsing"	INTEGER,
+	"IsAct"	INTEGER,
+	"RegDat"	TEXT,
+	PRIMARY KEY("IdUsing" AUTOINCREMENT),
+	FOREIGN KEY("IdRel") REFERENCES ""
+);
+
+CREATE TABLE "Usuarios" (
+	"IdUsr"	INTEGER NOT NULL,
+	"UserNam"	TEXT,
+	"TlfNam"	TEXT,
+	"IsAct"	INTEGER,
+	"RegDat"	TEXT,
+	PRIMARY KEY("IdUsr" AUTOINCREMENT)
+);
+
+CREATE TABLE "Viajes" (
+	"IdTrav"	INTEGER NOT NULL,
+	"IdDrive"	INTEGER,
+	"IdGrp"	INTEGER,
+	"DesTrav"	TEXT,
+	"RegDat"	TEXT,
+	"IsAct"	INTEGER,
+	PRIMARY KEY("IdTrav" AUTOINCREMENT),
+	FOREIGN KEY("IdDrive") REFERENCES "Drivers"("IdDrive"),
+	FOREIGN KEY("IdGrp") REFERENCES "Grupos"("IdGrp")
+);
