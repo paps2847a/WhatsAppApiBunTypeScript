@@ -2,7 +2,7 @@ import pc from "picocolors";
 
 export default class Logger {
     public static Log(LogArgs: any) {
-        console.log(pc.white(JSON.stringify(LogArgs)));
+        console.log(pc.bgYellowBright(JSON.stringify(LogArgs)));
     }
 
     public static LogSuccess(LogArgs: any) {

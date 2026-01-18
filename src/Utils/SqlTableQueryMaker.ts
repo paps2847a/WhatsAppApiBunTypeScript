@@ -21,7 +21,7 @@ export default class SqlTableQueryMaker {
         return `${value}`;
     }
 
-    public InsertInto(Row: Record<string, unknown>): string {
+    public InsertInto(Row: Record<string, unknown>): { query: string, params: unknown[] } {
         let Query = new StringBuilder(`insert into ${this.Tablename} (`);
 
         for (let item = 0; item < this.TableColumns.length; item++) {
@@ -38,38 +38,36 @@ export default class SqlTableQueryMaker {
         DataFromObject = DataFromObject.slice(1, DataFromObject.length);
 
         for (let item = 0; item < DataFromObject.length; item++) {
-            const formatted = this.formatValue(DataFromObject[item]);
             if (this.LastOne(item, DataFromObject.length))
-                Query.Append(` ${formatted} `);
+                Query.Append(` ? `);
             else
-                Query.Append(` ${formatted}, `);
+                Query.Append(` ?, `);
         }
 
         Query.Append(") ");
         Query.Append(` RETURNING last_insert_rowid()`);
 
-        return Query.ToString();
+        return { query: Query.ToString(), params: DataFromObject };
     }
 
-    public Update(Row: Record<string, unknown>): string {
+    public Update(Row: Record<string, unknown>): { query: string, params: unknown[] } {
         let DataFromObject = Object.values(Row);
-        const Pk = this.formatValue(DataFromObject[0]);
+        const Pk = DataFromObject[0];
 
         DataFromObject = DataFromObject.slice(1, DataFromObject.length);
 
         let Query = new StringBuilder(`update ${this.Tablename} SET `);
 
         for (let item = 0; item < this.TableColumns.length; item++) {
-            const formatted = this.formatValue(DataFromObject[item]);
             if (this.LastOne(item, this.TableColumns.length))
-                Query.Append(` ${this.TableColumns[item]} = ${formatted} `);
+                Query.Append(` ${this.TableColumns[item]} = ? `);
             else
-                Query.Append(` ${this.TableColumns[item]} = ${formatted}, `);
+                Query.Append(` ${this.TableColumns[item]} = ?, `);
         }
 
-        Query.Append(`WHERE ${this.PkColumnsName} = ${Pk}`);
+        Query.Append(`WHERE ${this.PkColumnsName} = ?`);
 
-        return Query.ToString();
+        return { query: Query.ToString(), params: [...DataFromObject, Pk] };
     }
 
     public Delete(Row: Record<string, unknown>): string {

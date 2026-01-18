@@ -1,18 +1,47 @@
-import { Database } from "bun:sqlite";
 import DbCreator from "./DbCreator";
 
 export default class DbHandler extends DbCreator {
-    protected ExecuteQuery(StrQuery: string): void {
-        this.Db.run(StrQuery);
+    protected ExecuteQuery(StrQuery: string, params: any[] = []): void {
+        try {
+            this.Db.run(StrQuery, ...params);
+        } catch (error) {
+            console.error(`Error executing query: ${StrQuery}`, error);
+            throw error;
+        }
     }
 
-    protected AddRow(StrQuery: string): number {
-        let result = this.Db.prepare(StrQuery).get() as object;
-        return Object.values(result)[0] as number;
+    protected ExecuteQueryReturnElement(StrQuery: string, params: any[] = []): Object[] {
+        try {
+            let toExecute = this.Db.prepare(StrQuery, ...params);
+            return toExecute.all(params) as Object[];
+        } catch (error) {
+            console.error(`Error executing query: ${StrQuery}`, error);
+            throw error;
+        }
     }
 
-    protected GetAllRecords<T extends object>(StrQuery: string): T[] {
-        const queryData = this.Db.prepare(StrQuery);
-        return queryData.all() as T[];
+    protected AddRow(StrQuery: string, params: any[] = []): number {
+        try {
+            //Esto estara bien?
+            let result = this.Db.prepare(StrQuery).get(...params) as object;
+            // Si es un insert con RETURNING, devuelve el valor. Si no, podría ser undefined.
+            if (result && typeof result === 'object') {
+                return Object.values(result)[0] as number;
+            }
+            return 0;
+        } catch (error) {
+            console.error(`Error adding row: ${StrQuery}`, error);
+            throw error;
+        }
+    }
+
+    protected GetAllRecords<T extends object>(StrQuery: string, params: any[] = []): T[] {
+        try {
+            const queryData = this.Db.prepare(StrQuery);
+            return queryData.all(...params) as T[];
+        } catch (error) {
+            console.error(`Error getting records: ${StrQuery}`, error);
+            throw error;
+        }
     }
 }
