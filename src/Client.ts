@@ -13,6 +13,11 @@ const client: Client = new Client({
     }
 });
 
+//Agregar evento para verificar reacciones a mensajes sobre participacion en transporte
+client.on('message_reaction', (reaction) => {
+    
+});
+
 client.on('qr', qr => {
     qrcode.generate(qr, { small: true });
 });

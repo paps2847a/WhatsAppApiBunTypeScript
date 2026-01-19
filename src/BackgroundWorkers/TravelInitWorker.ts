@@ -14,7 +14,7 @@ export default class TravelInitWorker implements IBackGroundInterface {
 
     constructor(cliente: Client, groupSvrc: GruposService, options?: TravelInitOptions) {
         const defaultHours = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
-        
+
         this.allowedHours = new Set(options?.allowedHours ?? defaultHours);
         this.checkIntervalMs = options?.checkIntervalMs ?? 60_000; // 1 minute
         this.clientController = cliente;
@@ -41,8 +41,7 @@ export default class TravelInitWorker implements IBackGroundInterface {
                 let GroupsTosend = this.groupService.Get();
                 for(let item of GroupsTosend)
                 {
-                    //this.clientController.sendMessage(item.NumGrp as string, `Recordatorio: Por favor, confirmen quiénes usarán el transporte hoy en el turno de ${currentShift}.`);
-                    Logger.Log(`Mensaje enviado al grupo ${item.DesGrp} para el turno de ${currentShift}.`);
+                    this.clientController.sendMessage(item.NumGrp, `Recordatorio: Por favor, confirmen quiénes usarán el transporte hoy en el turno de ${currentShift}.`, { sendSeen: false });
                 }
 
                 Logger.Log(`TravelInitWorker is running at ${now.toLocaleString()}...`);
