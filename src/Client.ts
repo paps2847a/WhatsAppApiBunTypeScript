@@ -9,9 +9,7 @@ import UsuariosService from './Services/UsuariosService';
 import GrpRelService from './Services/GrpRelService';
 import GrpRel from './Models/GrpRel';
 import UsingToday from './Models/UsingToday';
-
-//cache
-//const GroupsCacheData: Map<string, string> = new Map();
+import TlfFormatter from './Utils/TlfFormatter';
 
 const client: Client = new Client({
     authStrategy: new LocalAuth(),
@@ -20,7 +18,11 @@ const client: Client = new Client({
     puppeteer: {
         headless: true,
         args: ['--no-sandbox']
-    },
+    }
+});
+
+client.on('qr', qr => {
+    qrcode.generate(qr, { small: true });
 });
 
 //La solicitud constante de datos de los grupos y usuarios se ha optimizado pero hay que agregar limitaciones o delay para humanizarlo
@@ -67,8 +69,6 @@ client.on('ready', async () => {
         // Si por alguna razón no hay ID, saltamos este grupo
         if (!currentGroupId) continue;
 
-        //GroupsCacheData.set(group.name, groupSerializedId);
-
         // 2. Procesar participantes
         for (const participant of group.participants) {
             const participantId = participant.id._serialized;
@@ -78,6 +78,7 @@ client.on('ready', async () => {
             let currentUserId: number;
 
             if (UserData.length === 0) {
+                //Estar pendiente con esta seccion, quien sabe si wasap se vuelve loco
                 let scrappedUserData = await client.getContactById(participant.id._serialized);
 
                 const NewUserData = new Usuarios();
@@ -107,13 +108,9 @@ client.on('ready', async () => {
     Logger.Log('Client is ready and data synced!');
 });
 
-client.on('qr', qr => {
-    qrcode.generate(qr, { small: true });
-});
-
 client.on('group_join', async (notification) => {
     const chat = await notification.getChat() as GroupChat;
-    if(chat.isGroup === false)
+    if(!chat.isGroup)
         return;
 
     const _GroupService: GruposService = new GruposService();
@@ -156,10 +153,8 @@ client.on('message', async (msg) => {
     if (!ChatRegister.isGroup)
         return;
 
-    //Test mensaje de prueba para evitar exception por unread (problemas de version actual)
-    msg.reply("Procesando su solicitud, por favor espere...", msg.from, { sendSeen: false });
-
     let UserData = await msg.getContact();
+    
     let _UsingTransport: UsingTodayService = new UsingTodayService();
     let _GroupRelService: GrpRelService = new GrpRelService();
     let _UserService: UsuariosService = new UsuariosService();
@@ -196,18 +191,17 @@ client.on('message', async (msg) => {
             const confirmedUsers = _UsingTransport.GetUsersConfirmed(GroupDataDb[0]!.IdGrp, currentShift, new Date().toJSON());
 
             if (confirmedUsers.length === 0) {
-                await msg.reply(`No hay usuarios confirmados para el turno de la ${currentShift} hoy.`);
+                await msg.reply(`No hay usuarios confirmados para el turno de la ${currentShift} hoy.`, msg.from, { sendSeen: false });
             } else {
                 let response = `*Usuarios confirmados para el turno de la ${currentShift}:*\n`;
                 confirmedUsers.forEach((user, index) => {
-                    response += `${index + 1}. ${user.UserNam}\n`;
+                    response += `${index + 1}. ${user.UserNam} - ${TlfFormatter.FormatNumber(user.TlfNam)}\n`;
                 });
-                await msg.reply(response);
+                await msg.reply(response, msg.from, { sendSeen: false });
             }
             return;
         }
 
-        msg.reply(`Hola ${UserData.pushname}, para registrarte en el uso del transporte hoy, por favor responde con la palabra "Usare" o "usare".`);
         return;
     }
 
@@ -229,6 +223,7 @@ client.on('message', async (msg) => {
         NewUsingToday.IdUsing = 1;
         NewUsingToday.Shift = currentShift;
         _UsingTransport.Add(NewUsingToday);
+        
         Logger.Log(`Usuario ${UserData.pushname} registrado para usar el servicio hoy (Turno: ${currentShift}).`);
 
         return;
@@ -250,14 +245,11 @@ client.on('message', async (msg) => {
         let NewUsingToday = UsingTodayData[0] as UsingToday;
         NewUsingToday.IsUsing = 0;
         _UsingTransport.Update(NewUsingToday);
+        
         Logger.Log(`Usuario ${UserData.pushname} ha negado que usara el transporteservicio hoy (Turno: ${currentShift}).`);
 
         return;
     }
-
-
-
-
 });
 
 export default client;

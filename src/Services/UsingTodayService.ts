@@ -26,9 +26,9 @@ class UsingTodayService extends DataHandler {
         return this.GetAllRecords<UsingToday>(Sentence, params);
     }
 
-    public GetUsersConfirmed(IdGrp: number, Shift: string, Date: string): { UserNam: string }[] {
+    public GetUsersConfirmed(IdGrp: number, Shift: string, Date: string): { UserNam: string, TlfNam: string }[] {
         const query = `
-            SELECT u.UserNam 
+            SELECT u.UserNam, u.TlfNam
             FROM UsingToday ut
             INNER JOIN GrpRel gr ON ut.IdRel = gr.IdRel
             INNER JOIN Usuarios u ON gr.IdUsr = u.IdUsr
@@ -37,7 +37,7 @@ class UsingTodayService extends DataHandler {
             AND ut.RegDat = ? 
             AND ut.IsUsing = 1
         `;
-        return this.GetAllRecords<{ UserNam: string }>(query, [IdGrp, Shift, Date]);
+        return this.GetAllRecords<{ UserNam: string, TlfNam: string }>(query, [IdGrp, Shift, Date]);
     }
 
 }
