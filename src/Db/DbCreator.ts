@@ -6,7 +6,7 @@ export default class DbCreator {
     private static Root: string = "./src/Db/";
     private static DbName: string = `${DbCreator.Root}TravelOps.sqlite`;
     private static DbTablesScript: string = `${DbCreator.Root}SqlDbScript.txt`;
-    private static _dbInstance: Database;
+    private static _dbInstance: Database | null = null;
 
     protected get Db(): Database {
         if (!DbCreator._dbInstance) {
@@ -20,7 +20,7 @@ export default class DbCreator {
         // Inicializa la conexión si no existe
         const db = this.Db;
         
-        let countTablesObj = DbCreator._dbInstance.prepare("SELECT COUNT(name) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").get() as object;
+        let countTablesObj = DbCreator._dbInstance!.prepare("SELECT COUNT(name) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").get() as object;
         let tableNumber = Object.values(countTablesObj)[0];
 
         // Si el archivo está vacío, ejecutamos el script de creación
@@ -35,6 +35,20 @@ export default class DbCreator {
 
             db.run(SqlSentenceTables);
             console.log("Base de datos inicializada correctamente.");
+        }
+    }
+
+    public async dispose(): Promise<void> {
+        if (DbCreator._dbInstance) {
+            try {
+                // bun:sqlite Database has a close() method
+                DbCreator._dbInstance.close();
+            } catch (err) {
+                // best-effort close
+                console.error("Error closing DB:", err);
+            } finally {
+                DbCreator._dbInstance = null;
+            }
         }
     }
 }

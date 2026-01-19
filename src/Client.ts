@@ -21,10 +21,10 @@ client.on('qr', qr => {
 client.on('ready', async () => {
     GroupSyncHandler.BotWhatsAppId = client.info.wid._serialized;
     MessageHandler.BotWhatsAppId = client.info.wid._serialized;
-    
-    await GroupSyncHandler.syncGroups(client);
-    // message sync / other startup tasks can be placed here
+
+        // message sync / other startup tasks can be placed here
     // leave logging to existing utils
+    await GroupSyncHandler.syncGroups(client);
 });
 
 client.on('group_join', async (notification) => {
@@ -32,7 +32,7 @@ client.on('group_join', async (notification) => {
 });
 
 client.on('message', async (msg) => {
-    await MessageHandler.handleMessage(client, msg as any);
+    await MessageHandler.handleMessage(client, msg);
 });
 
 export default client;
