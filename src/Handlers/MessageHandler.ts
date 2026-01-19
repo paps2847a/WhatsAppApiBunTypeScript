@@ -61,10 +61,8 @@ export default class MessageHandler {
 
         const body = msg.body.toLowerCase();
         if (body.includes("quienes van") || body.includes("quienes usaran")) {
-            const currentHour = new Date().getHours();
-            let currentShift = "Manana";
-            if (currentHour >= 12) currentShift = "Tarde";
-
+            
+            let currentShift =  new Date().getHours() >= 12 ? "Tarde" : "Manana";
             const confirmedUsers = _UsingTransport.GetUsersConfirmed(GroupDataDb[0]!.IdGrp, currentShift, new Date().toJSON());
 
             if (confirmedUsers.length === 0) {
@@ -88,9 +86,7 @@ export default class MessageHandler {
         if (!msg.body) return false;
         if (!msg.body.toLocaleLowerCase().includes("usare")) return false;
 
-        const currentHour = new Date().getHours();
-        let currentShift = "Manana";
-        if (currentHour >= 12) currentShift = "Tarde";
+        let currentShift = new Date().getHours() >= 12 ? "Tarde" : "Manana";
 
         const UsingTodayData = _UsingTransport.Get("IdRel = ? AND RegDat = ? AND Shift = ?", [UsrRelGrp[0]?.IdRel, new Date().toLocaleDateString(), currentShift]);
         if (UsingTodayData.length > 0) return true;
@@ -110,9 +106,7 @@ export default class MessageHandler {
         if (!msg.body) return false;
         if (!msg.body.toLocaleLowerCase().includes("no usare")) return false;
 
-        const currentHour = new Date().getHours();
-        let currentShift = "Manana";
-        if (currentHour >= 12) currentShift = "Tarde";
+        let currentShift =  new Date().getHours() >= 12 ? "Tarde" : "Manana";
 
         const UsingTodayData = _UsingTransport.Get("IdRel = ? AND RegDat = ? AND Shift = ?", [UsrRelGrp[0]?.IdRel, new Date().toLocaleDateString(), currentShift]);
         if (UsingTodayData.length == 0) return true;
