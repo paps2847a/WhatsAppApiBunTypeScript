@@ -1,12 +1,15 @@
-import { Client, type Chat, type GroupChat } from 'whatsapp-web.js';
+import WAWebJS, { Client, type Chat, type GroupChat } from 'whatsapp-web.js';
 import GruposService from '../Services/GruposService';
 import UsuariosService from '../Services/UsuariosService';
 import GrpRelService from '../Services/GrpRelService';
 import Grupos from '../Models/Grupos';
 import Usuarios from '../Models/Usuarios';
 import GrpRel from '../Models/GrpRel';
+import Logger from '../Utils/Logger';
 
 export default class GroupSyncHandler {
+    public static BotWhatsAppId: string = "";
+
     static async syncGroups(client: Client) {
         const UnorderedGroupsData: Chat[] = await client.getChats();
 
@@ -22,7 +25,7 @@ export default class GroupSyncHandler {
 
         for (const group of GroupSummaries) {
             const groupSerializedId = group.id._serialized;
-
+            
             let GroupData = _GroupService.Get(`NumGrp = ?`, [groupSerializedId]);
             let currentGroupId: number;
 
@@ -39,6 +42,7 @@ export default class GroupSyncHandler {
 
             for (const participant of group.participants) {
                 const participantId = participant.id._serialized;
+                if(this.BotWhatsAppId === participantId) continue;
 
                 let UserData: Usuarios[] = _UsuarioService.Get(` TlfNam = ?`, [participantId]);
                 let currentUserId: number;
@@ -63,9 +67,11 @@ export default class GroupSyncHandler {
                 }
             }
         }
+
+        Logger.Log("Group synchronization completed.");
     }
 
-    static async handleGroupJoin(client: Client, notification: any) {
+    static async handleGroupJoin(client: Client, notification: WAWebJS.GroupNotification) {
         const chat = await notification.getChat() as GroupChat;
         if (!chat.isGroup) return;
 
@@ -74,6 +80,7 @@ export default class GroupSyncHandler {
         const _GroupRelService: GrpRelService = new GrpRelService();
 
         const user = await notification.getContact();
+        if(this.BotWhatsAppId === user.id._serialized) return;
 
         let userResult = _UsuarioService.Get(` TlfNam = ?`, [user.id._serialized]);
         if (userResult.length === 0) {
@@ -98,5 +105,7 @@ export default class GroupSyncHandler {
             NewGroupRel.IsAdm = participantRole.isAdmin ? 1 : 0;
             _GroupRelService.Add(NewGroupRel);
         }
+
+        Logger.Log(`User ${user.pushname || user.id._serialized} joined group ${chat.name}.`);
     }
 }

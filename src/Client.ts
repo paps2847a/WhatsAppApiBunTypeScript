@@ -1,4 +1,4 @@
-import { Client, LocalAuth, type Chat, type GroupChat } from 'whatsapp-web.js';
+import { Client, LocalAuth  } from 'whatsapp-web.js';
 import qrcode from 'qrcode-terminal';
 import GroupSyncHandler from './Handlers/GroupSyncHandler';
 import MessageHandler from './Handlers/MessageHandler';
@@ -19,6 +19,9 @@ client.on('qr', qr => {
 
 //La solicitud constante de datos de los grupos y usuarios se ha optimizado pero hay que agregar limitaciones o delay para humanizarlo
 client.on('ready', async () => {
+    GroupSyncHandler.BotWhatsAppId = client.info.wid._serialized;
+    MessageHandler.BotWhatsAppId = client.info.wid._serialized;
+    
     await GroupSyncHandler.syncGroups(client);
     // message sync / other startup tasks can be placed here
     // leave logging to existing utils

@@ -8,6 +8,8 @@ import Logger from '../Utils/Logger';
 import TlfFormatter from '../Utils/TlfFormatter';
 
 export default class MessageHandler {
+    public static BotWhatsAppId: string = "";
+
     static async handleMessage(client: Client, msg: Message) {
         const ctx = await this.getContext(client, msg);
         if (!ctx) return;
@@ -74,6 +76,8 @@ export default class MessageHandler {
                 });
                 await msg.reply(response, msg.from, { sendSeen: false });
             }
+
+            Logger.Log(`User ${UserData.pushname} requested confirmed users for shift ${currentShift}.`);
             return true;
         }
         return true; // mention but not handled further
