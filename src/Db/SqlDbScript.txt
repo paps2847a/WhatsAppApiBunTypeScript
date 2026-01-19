@@ -35,8 +35,9 @@ CREATE TABLE "UsingToday" (
 	"IsUsing"	INTEGER,
 	"IsAct"	INTEGER,
 	"RegDat"	TEXT,
+	"Shift"	TEXT,
 	PRIMARY KEY("IdUsing" AUTOINCREMENT),
-	FOREIGN KEY("IdRel") REFERENCES ""
+	FOREIGN KEY("IdRel") REFERENCES "GrpRel"("IdRel")
 );
 
 CREATE TABLE "Usuarios" (

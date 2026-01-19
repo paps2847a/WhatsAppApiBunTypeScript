@@ -3,5 +3,5 @@ export default class Usuarios{
     public UserNam: string = "";
     public TlfNam: string = "";
     public IsAct: number = 1;
-    public RegDat: string = new Date().toLocaleDateString();
+    public RegDat: string = new Date().toJSON();
 }

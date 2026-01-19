@@ -3,5 +3,5 @@ export default class Grupos{
     public DesGrp: string = "";
     public NumGrp: string = "";
     public IsAct: number = 1;
-    public RegDat: string = new Date().toLocaleDateString();
+    public RegDat: string = new Date().toJSON();
 }
