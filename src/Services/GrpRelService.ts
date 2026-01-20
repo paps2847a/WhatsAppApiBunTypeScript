@@ -16,8 +16,8 @@ class GrpRelService extends DataHandler {
     }
 
     public Delete(row: GrpRel) {
-        const Sentence: string = this.SentenceMaker.Delete(row as unknown as Record<string, unknown>);
-        this.ExecuteQuery(Sentence);
+        const { query, params } = this.SentenceMaker.Delete(row as unknown as Record<string, unknown>);
+        this.ExecuteQuery(query, params);
     }
 
     public Get(WhereSentence: string = "", params: any[] = [], limit: number = 0) {

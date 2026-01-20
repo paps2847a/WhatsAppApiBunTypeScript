@@ -4,7 +4,7 @@ CREATE TABLE "Drivers" (
 	"TlfNam"	TEXT,
 	"IsAct"	INTEGER,
 	"IsExtrn"	INTEGER,
-	"RegDat"	TEXT,
+	"RegDat"	INTEGER,
 	PRIMARY KEY("IdDrive" AUTOINCREMENT)
 );
 
@@ -14,7 +14,7 @@ CREATE TABLE "GrpRel" (
 	"IdUsr"	INTEGER,
 	"IsAdm"	INTEGER,
 	"IsAct"	INTEGER,
-	"RegDat"	TEXT,
+	"RegDat"	INTEGER,
 	PRIMARY KEY("IdRel" AUTOINCREMENT),
 	FOREIGN KEY("IdGrp") REFERENCES "Grupos"("IdGrp"),
 	FOREIGN KEY("IdUsr") REFERENCES "Usuarios"("IdUsr")
@@ -25,7 +25,7 @@ CREATE TABLE "Grupos" (
 	"DesGrp"	TEXT,
 	"NumGrp"	TEXT,
 	"IsAct"	INTEGER,
-	"RegDat"	TEXT,
+	"RegDat"	INTEGER,
 	PRIMARY KEY("IdGrp" AUTOINCREMENT)
 );
 
@@ -34,7 +34,7 @@ CREATE TABLE "UsingToday" (
 	"IdRel"	INTEGER,
 	"IsUsing"	INTEGER,
 	"IsAct"	INTEGER,
-	"RegDat"	TEXT,
+	"RegDat"	INTEGER,
 	"Shift"	TEXT,
 	PRIMARY KEY("IdUsing" AUTOINCREMENT),
 	FOREIGN KEY("IdRel") REFERENCES "GrpRel"("IdRel")
@@ -45,9 +45,15 @@ CREATE TABLE "Usuarios" (
 	"UserNam"	TEXT,
 	"TlfNam"	TEXT,
 	"IsAct"	INTEGER,
-	"RegDat"	TEXT,
+	"RegDat"	INTEGER,
 	PRIMARY KEY("IdUsr" AUTOINCREMENT)
 );
+
+CREATE INDEX "Idx_Drivers_TlfNam" ON "Drivers" ("TlfNam");
+CREATE INDEX "Idx_GrpRel_IdGrp_IdUsr" ON "GrpRel" ("IdGrp", "IdUsr");
+CREATE INDEX "Idx_Grupos_NumGrp" ON "Grupos" ("NumGrp");
+CREATE INDEX "Idx_UsingToday_IdRel_RegDat_Shift" ON "UsingToday" ("IdRel", "RegDat", "Shift");
+CREATE INDEX "Idx_Usuarios_TlfNam" ON "Usuarios" ("TlfNam");
 
 CREATE TABLE "Viajes" (
 	"IdTrav"	INTEGER NOT NULL,

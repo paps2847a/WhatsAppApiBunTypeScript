@@ -32,6 +32,10 @@ export default class ReactionHandler {
             if (userGroupRel.length === 0)
                 return;
 
+            let usingTodayRecords = _UsingTransport.Get("IdRel = ? AND Shift = ? AND DateUse = DATE('now')", [userGroupRel[0]!.IdRel, new Date().getHours() >= 12 ? "Tarde" : "Manana"]);
+            if (usingTodayRecords.length > 0)
+                return;
+
             let usingTodayRecord = new UsingToday();
             usingTodayRecord.IdRel = userGroupRel[0]!.IdRel;
             usingTodayRecord.Shift = new Date().getHours() >= 12 ? "Tarde" : "Manana";

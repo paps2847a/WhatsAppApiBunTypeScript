@@ -4,5 +4,5 @@ export default class Drivers{
     public TlfNam: string = "";
     public IsAct: number = 1;
     public IsExtrn: number = 0;
-    public RegDat: string = new Date().toJSON();
+    public RegDat: number = Date.now();
 }

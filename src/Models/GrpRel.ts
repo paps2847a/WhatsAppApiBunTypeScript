@@ -4,5 +4,5 @@ export default class GrpRel{
     public IdUsr: number = 0;
     public IsAdm: number = 0;
     public IsAct: number = 1;
-    public RegDat: string = new Date().toJSON();
+    public RegDat: number = Date.now();
 }

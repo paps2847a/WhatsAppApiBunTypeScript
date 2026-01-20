@@ -12,8 +12,8 @@ export default class DbHandler extends DbCreator {
 
     protected ExecuteQueryReturnElement(StrQuery: string, params: any[] = []): Object[] {
         try {
-            let toExecute = this.Db.prepare(StrQuery, ...params);
-            return toExecute.all(params) as Object[];
+            let toExecute = this.Db.prepare(StrQuery);
+            return toExecute.all(...params) as Object[];
         } catch (error) {
             console.error(`Error executing query: ${StrQuery}`, error);
             throw error;
@@ -43,5 +43,10 @@ export default class DbHandler extends DbCreator {
             console.error(`Error getting records: ${StrQuery}`, error);
             throw error;
         }
+    }
+
+    public RunTransaction(action: () => void): void {
+        const transaction = this.Db.transaction(action);
+        transaction();
     }
 }

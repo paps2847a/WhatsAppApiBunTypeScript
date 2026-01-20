@@ -6,6 +6,7 @@ import GruposService from '../Services/GruposService';
 import UsingToday from '../Models/UsingToday';
 import Logger from '../Utils/Logger';
 import TlfFormatter from '../Utils/TlfFormatter';
+import DateUtils from '../Utils/DateUtils';
 
 export default class MessageHandler {
     public static BotWhatsAppId: string = "";
@@ -63,7 +64,7 @@ export default class MessageHandler {
         if (body.includes("quienes van") || body.includes("quienes usaran")) {
             
             let currentShift =  new Date().getHours() >= 12 ? "Tarde" : "Manana";
-            const confirmedUsers = _UsingTransport.GetUsersConfirmed(GroupDataDb[0]!.IdGrp, currentShift, new Date().toJSON());
+            const confirmedUsers = _UsingTransport.GetUsersConfirmed(GroupDataDb[0]!.IdGrp, currentShift);
 
             if (confirmedUsers.length === 0) {
                 await msg.reply(`No hay usuarios confirmados para el turno de la ${currentShift} hoy.`, msg.from, { sendSeen: false });
@@ -87,17 +88,22 @@ export default class MessageHandler {
         if (!msg.body.toLocaleLowerCase().includes("usare")) return false;
 
         let currentShift = new Date().getHours() >= 12 ? "Tarde" : "Manana";
-
-        const UsingTodayData = _UsingTransport.Get("IdRel = ? AND RegDat = ? AND Shift = ?", [UsrRelGrp[0]?.IdRel, new Date().toLocaleDateString(), currentShift]);
-        if (UsingTodayData.length > 0) return true;
+        const { start, end } = DateUtils.GetTodayRange();
 
         const NewUsingToday = new UsingToday();
         NewUsingToday.IdRel = UsrRelGrp[0]?.IdRel as number;
         NewUsingToday.IdUsing = 1;
         NewUsingToday.Shift = currentShift;
-        _UsingTransport.Add(NewUsingToday);
+        
+        const wasRegistered = _UsingTransport.RegisterUsageIfNotExists(NewUsingToday, start, end);
 
-        Logger.Log(`Usuario ${UserData.pushname} registrado para usar el servicio hoy (Turno: ${currentShift}).`);
+        if (wasRegistered) {
+            Logger.Log(`Usuario ${UserData.pushname} registrado para usar el servicio hoy (Turno: ${currentShift}).`);
+            // Opcional: Responder al usuario confirmando
+        } else {
+            // Ya estaba registrado
+        }
+        
         return true;
     }
 

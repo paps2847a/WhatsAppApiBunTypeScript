@@ -70,12 +70,12 @@ export default class SqlTableQueryMaker {
         return { query: Query.ToString(), params: [...DataFromObject, Pk] };
     }
 
-    public Delete(Row: Record<string, unknown>): string {
+    public Delete(Row: Record<string, unknown>): { query: string, params: unknown[] } {
         const dataFromObject = Object.values(Row);
-        const Pk = this.formatValue(dataFromObject[0]);
+        const Pk = dataFromObject[0];
 
-        const Query = new StringBuilder(`delete from ${this.Tablename} WHERE ${this.PkColumnsName} = ${Pk}`);
-        return Query.ToString();
+        const Query = new StringBuilder(`delete from ${this.Tablename} WHERE ${this.PkColumnsName} = ?`);
+        return { query: Query.ToString(), params: [Pk] };
     }
 
     public Select(WhereSentence: string = "", limit: number = 0): string {
