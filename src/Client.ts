@@ -2,6 +2,7 @@ import { Client, LocalAuth  } from 'whatsapp-web.js';
 import qrcode from 'qrcode-terminal';
 import GroupSyncHandler from './Handlers/GroupSyncHandler';
 import MessageHandler from './Handlers/MessageHandler';
+import ReactionHandler from './Handlers/ReactionHandler';
 
 const client: Client = new Client({
     authStrategy: new LocalAuth(),
@@ -14,8 +15,8 @@ const client: Client = new Client({
 });
 
 //Agregar evento para verificar reacciones a mensajes sobre participacion en transporte
-client.on('message_reaction', (reaction) => {
-    
+client.on('message_reaction', async (reaction) => {
+    await ReactionHandler.handleReaction(client, reaction);
 });
 
 client.on('qr', qr => {

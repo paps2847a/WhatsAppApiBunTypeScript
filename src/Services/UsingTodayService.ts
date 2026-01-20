@@ -46,15 +46,44 @@ class UsingTodayService extends DataHandler {
     public RegisterUsageIfNotExists(row: UsingToday, start: number, end: number): boolean {
         let inserted = false;
         this.RunTransaction(() => {
-            const existing = this.Get("IdRel = ? AND Shift = ? AND RegDat >= ? AND RegDat <= ?", 
+            const existing = this.Get("IsUsing = 1 AND IdRel = ? AND Shift = ? AND RegDat >= ? AND RegDat <= ?",
                 [row.IdRel, row.Shift, start, end]);
-            
-            if (existing.length === 0) {
+
+            if (existing.filter(e => e.Shift === row.Shift).length === 0) {
                 this.Add(row);
                 inserted = true;
             }
         });
         return inserted;
+    }
+
+    public UnRegisterUsageIfExists(row: UsingToday, start: number, end: number): boolean {
+        let updated = false;
+        this.RunTransaction(() => {
+            const existing = this.Get("IsUsing = 1 AND IdRel = ? AND Shift = ? AND RegDat >= ? AND RegDat <= ?",
+                [row.IdRel, row.Shift, start, end]);
+
+            let searchedResults = existing.filter(e => e.Shift === row.Shift);
+            if (searchedResults.length === 1) {
+                let asistingRegister = searchedResults[0];
+                asistingRegister!.IsUsing = 0;
+
+                this.Update(asistingRegister!);
+                updated = true;
+            }
+
+            if (searchedResults.length === 0) {
+                let asistingRegister = new UsingToday();
+                asistingRegister.IdRel = row.IdRel;
+                asistingRegister.IsUsing = 0;
+                asistingRegister.Shift = row.Shift;
+
+                this.Add(asistingRegister!);
+                updated = true;
+            }
+
+        });
+        return updated;
     }
 
 }

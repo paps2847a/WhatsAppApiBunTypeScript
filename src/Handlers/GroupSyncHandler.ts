@@ -10,7 +10,7 @@ import Logger from '../Utils/Logger';
 export default class GroupSyncHandler {
     public static BotWhatsAppId: string = "";
 
-    static async syncGroups(client: Client) {
+    static async syncGroups(client: Client) : Promise<void> {
         const UnorderedGroupsData: Chat[] = await client.getChats();
 
         const GroupSummaries: GroupChat[] = UnorderedGroupsData.filter((chat): chat is GroupChat =>
@@ -71,7 +71,7 @@ export default class GroupSyncHandler {
         Logger.Log("Group synchronization completed.");
     }
 
-    static async handleGroupJoin(client: Client, notification: WAWebJS.GroupNotification) {
+    static async handleGroupJoin(client: Client, notification: WAWebJS.GroupNotification) : Promise<void> {
         const chat = await notification.getChat() as GroupChat;
         if (!chat.isGroup) return;
 
@@ -87,8 +87,7 @@ export default class GroupSyncHandler {
             const NewUserData = new Usuarios();
             NewUserData.TlfNam = user.id._serialized;
             NewUserData.UserNam = user.pushname || "Sin Nombre";
-            _UsuarioService.Add(NewUserData);
-            userResult = _UsuarioService.Get(` TlfNam = ?`, [user.id._serialized]);
+            userResult[0]!.IdUsr = _UsuarioService.Add(NewUserData);
         }
 
         let groupResult = _GroupService.Get(` NumGrp = ?`, [chat.id._serialized]);

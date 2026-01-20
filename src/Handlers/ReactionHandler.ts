@@ -6,7 +6,7 @@ import GruposService from "../Services/GruposService";
 import UsingToday from "../Models/UsingToday";
 
 export default class ReactionHandler {
-    public static async handleReaction(client: Client, reaction: Reaction) {
+    public static async handleReaction(client: Client, reaction: Reaction) : Promise<void> {
 
         const msg = await client.getMessageById(reaction.msgId._serialized);
         const ctx = await msg.getChat() as GroupChat;

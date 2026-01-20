@@ -6,49 +6,58 @@ import type TravelInitOptions from "../Utils/ITravelInitOptions";
 
 
 export default class TravelInitWorker implements IBackGroundInterface {
-    private allowedHours: Set<number>;
-    private checkIntervalMs: number;
-    private lastRunKey: string | null = null;
+    private worker?: Worker;
     private clientController: Client;
-    private groupService: GruposService;
+    private options?: TravelInitOptions;
 
-    constructor(cliente: Client, groupSvrc: GruposService, options?: TravelInitOptions) {
-        const defaultHours = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
-
-        this.allowedHours = new Set(options?.allowedHours ?? defaultHours);
-        this.checkIntervalMs = options?.checkIntervalMs ?? 60_000; // 1 minute
+    constructor(cliente: Client, options?: TravelInitOptions) {
         this.clientController = cliente;
-        this.groupService = groupSvrc;
+        this.options = options;
     }
 
-    DefineAndRegister(): void {
-        setInterval(() => {
-            const now = new Date();
-            const hour = now.getHours();
+    public DefineAndRegister(): void {
+        // Spawn worker thread that will check DB on schedule and inform us when to send reminders
+        const workerUrl = new URL("./TravelInitWorker.worker.ts", import.meta.url).href;
+        Logger.Log(`TravelInitWorker: Starting worker at ${workerUrl}`);
 
-            if (!this.allowedHours.has(hour)) return; // not within allowed hours
+        this.worker = new Worker(workerUrl, { type: "module" });
 
-            // Prevent multiple runs within the same minute (or same hour if desired)
-            const runKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${hour}`;
-            if (this.lastRunKey === runKey) return;
-            this.lastRunKey = runKey;
+        this.worker.onmessage = async (ev: MessageEvent) => {
+            const m = ev.data;
+            if (!m || !m.type) return;
 
-            try {
-                let currentShift = "Manana";
-                if (hour >= 12) 
-                    currentShift = "Tarde";
-
-                let GroupsTosend = this.groupService.Get();
-                for(let item of GroupsTosend)
-                {
-                    this.clientController.sendMessage(item.NumGrp, `Recordatorio: Por favor, confirmen quiénes usarán el transporte hoy en el turno de ${currentShift}.`, { sendSeen: false });
+            if (m.type === "reminder") {
+                const { currentShift, groups } = m.data as { currentShift: string, groups: Array<{ NumGrp: string }> };
+                const message = `Recordatorio: Por favor, confirmen quiénes usarán el transporte hoy en el turno de ${currentShift}.`;
+                try {
+                    const promises = (groups || []).map((g: any) => this.clientController.sendMessage(g.NumGrp, message, { sendSeen: false }));
+                    await Promise.allSettled(promises);
+                } catch (err) {
+                    Logger.Log(`TravelInitWorker send error: ${String(err)}`);
                 }
-
-                Logger.Log(`TravelInitWorker is running at ${now.toLocaleString()}...`);
-                // TODO: place the actual job logic here (e.g., init travel data, DB checks, etc.)
-            } catch (err) {
-                Logger.Log(`TravelInitWorker error: ${String(err)}`);
             }
-        }, this.checkIntervalMs);
+
+            if (m.type === "error") {
+                Logger.Log(`TravelInitWorker worker error: ${String(m.error)}`);
+            }
+        };
+
+        this.worker.onerror = (ev: ErrorEvent) => {
+            Logger.Log(`TravelInitWorker encountered worker error: ${String(ev.message)}`);
+        };
+
+        // Start the worker with options
+        this.worker.postMessage({ type: "start", options: this.options });
+    }
+
+    public Stop(): void {
+        if (!this.worker) return;
+        try {
+            this.worker.postMessage({ type: "stop" });
+            this.worker.terminate();
+        } catch (err) {
+            Logger.Log(`Error stopping TravelInitWorker: ${String(err)}`);
+        }
+        this.worker = undefined;
     }
 }
