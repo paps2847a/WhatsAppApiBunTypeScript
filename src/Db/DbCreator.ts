@@ -36,9 +36,11 @@ export default class DbCreator {
             db.run(SqlSentenceTables);
             console.log("Base de datos inicializada correctamente.");
         }
+
+        await this.dispose();
     }
 
-    public async dispose(): Promise<void> {
+    private async dispose(): Promise<void> {
         if (DbCreator._dbInstance) {
             try {
                 // bun:sqlite Database has a close() method
