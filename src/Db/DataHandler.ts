@@ -1,6 +1,19 @@
-import DbCreator from "./DbCreator";
+import DbEnumDir from "../Utils/DbEnumDir";
+import { Database } from "bun:sqlite";
 
-export default class DbHandler extends DbCreator {
+
+export default class DbHandler {
+    private _dbInstance: Database | null = null;
+
+    protected get Db(): Database {
+        if (!this._dbInstance){
+            let dirComposed = DbEnumDir.Root + DbEnumDir.DbName;
+            this._dbInstance = new Database(dirComposed, { create: true, strict: true });
+        }
+        
+        return this._dbInstance;
+    }
+
     protected ExecuteQuery(StrQuery: string, params: any[] = []): void {
         try {
             this.Db.run(StrQuery, ...params);
