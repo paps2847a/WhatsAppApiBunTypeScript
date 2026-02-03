@@ -28,7 +28,7 @@ client.on(Events.READY, async () => {
     GroupSyncHandler.BotWhatsAppId = client.info.wid._serialized;
     MessageHandler.BotWhatsAppId = client.info.wid._serialized;
 
-        // message sync / other startup tasks can be placed here
+    // message sync / other startup tasks can be placed here
     // leave logging to existing utils
     await GroupSyncHandler.syncGroups(client);
 });

@@ -1,7 +1,6 @@
 import client from "./Client";
 import DbCreator from "./Db/DbCreator";
 import SentimentValidator from "./Utils/SentimentValidator";
-import type IBackGroundInterface from "./Utils/IBackGroundInterface";
 import TravelInitWorker from "./BackgroundWorkers/TravelInitWorker";
 
 await DbCreator.CreateDb();
@@ -15,5 +14,4 @@ await DbCreator.CreateDb();
 // job.DefineAndRegister();
 
 await SentimentValidator.LoadPrompt();
-
 client.initialize();
