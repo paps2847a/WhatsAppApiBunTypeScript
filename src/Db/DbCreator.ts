@@ -1,33 +1,32 @@
 import { file } from "bun";
 import { Database } from "bun:sqlite";
 import DbEnumDir from "../Utils/DbEnumDir";
+import Logger from "../Utils/Logger";
 
 export default class DbCreator {
-    public static async CreateDb() {
+    public static async CreateDb(): Promise<void> {
         let dirComposed = DbEnumDir.Root + DbEnumDir.DbName;
-        let dbScript = DbEnumDir.Root + DbEnumDir.DbTablesScript;
 
         let _instanceDb = new Database(dirComposed, { create: true, strict: true });
         _instanceDb.run("PRAGMA journal_mode = WAL;");
-
-        // Inicializa la conexión si no existe
-        const db = _instanceDb;
         
         let countTablesObj = _instanceDb!.prepare("SELECT COUNT(name) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").get() as object;
-        let tableNumber = Object.values(countTablesObj)[0];
+        let tableNumber = Object.values(countTablesObj)[0] as number;
 
         // Si el archivo está vacío, ejecutamos el script de creación
         if (tableNumber === 0) {
-            let FileSqlText = file(dbScript);
+            let dirTable = DbEnumDir.Root + DbEnumDir.DbTablesScript;
+
+            let FileSqlText = file(dirTable);
             if (!await FileSqlText.exists())
-                throw new Error(`No existe script de configuracion en: ${dbScript}`);
+                throw new Error(`No existe script de configuracion en: ${dirTable}`);
 
             let SqlSentenceTables = await FileSqlText.text();
             if (SqlSentenceTables.length == 0)
                 throw new Error("El script de configuracion esta vacio");
-
-            db.run(SqlSentenceTables);
-            console.log("Base de datos inicializada correctamente.");
+            
+            _instanceDb.run(SqlSentenceTables);
+            Logger.Log("Base de datos inicializada correctamente.");
         }
     }
 }

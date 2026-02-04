@@ -32,11 +32,9 @@ type MessageContext = {
 
 export default class MessageHandler {
     public static BotWhatsAppId: string = "";
-    
+
     private static readonly SHIFT_THRESHOLD = 12;
     private static readonly KEYWORDS = {
-        USE: "usare",
-        NO_USE: "no usare",
         WHO_GOES: ["quienes van", "quienes usaran"]
     } as const;
 
@@ -47,8 +45,8 @@ export default class MessageHandler {
         const body = msg.body?.toLowerCase();
         if (!body) return;
 
-        if (await this.handleMentions(ctx, body)) return;
         if (await this.handleUsageToggle(ctx, body)) return;
+        if (await this.handleMentions(ctx, body)) return;
     }
 
     private static async getContext(client: Client, msg: Message): Promise<MessageContext | null> {
@@ -56,7 +54,7 @@ export default class MessageHandler {
         if (!chat.isGroup) return null;
 
         const contact = await msg.getContact();
-        
+
         // Instanciar servicios una sola vez
         const services = {
             usingTransport: new UsingTodayService(),
@@ -89,20 +87,16 @@ export default class MessageHandler {
         };
     }
 
-    private static getCurrentShift(): string {
-        return new Date().getHours() >= this.SHIFT_THRESHOLD ? "Tarde" : "Manana";
-    }
-
     private static async handleMentions(ctx: MessageContext, body: string): Promise<boolean> {
         const mentions = await ctx.msg.getMentions();
         const isBotMentioned = mentions.some(m => m.id._serialized === ctx.client.info.wid._serialized);
-        
+
         if (!isBotMentioned) return false;
 
         if (this.KEYWORDS.WHO_GOES.some(keyword => body.includes(keyword))) {
             await this.sendConfirmedUsers(ctx);
         }
-        
+
         return true;
     }
 
@@ -112,9 +106,9 @@ export default class MessageHandler {
         const response = confirmedUsers.length === 0
             ? `No hay usuarios confirmados para el turno de la ${ctx.shift} hoy.`
             : `*Usuarios confirmados para el turno de la ${ctx.shift}:*\n` +
-              confirmedUsers.map((user, i) => 
-                  `${i + 1}. ${user.UserNam} - ${TlfFormatter.FormatNumber(user.TlfNam)}`
-              ).join('\n');
+            confirmedUsers.map((user, i) =>
+                `${i + 1}. ${user.UserNam} - ${TlfFormatter.FormatNumber(user.TlfNam)}`
+            ).join('\n');
 
         await ctx.msg.reply(response);
         Logger.Log(`User ${ctx.contact.pushname} requested confirmed users for shift ${ctx.shift}.`);
@@ -130,8 +124,8 @@ export default class MessageHandler {
         }
 
         const wasRegistered = ctx.services.usingTransport.RegisterUsageIfNotExists(
-            usingToday, 
-            ctx.dateRange.start, 
+            usingToday,
+            ctx.dateRange.start,
             ctx.dateRange.end
         );
 
@@ -146,6 +140,11 @@ export default class MessageHandler {
         usingToday.IdRel = idRel;
         usingToday.IdUsing = 1;
         usingToday.Shift = shift;
+
         return usingToday;
+    }
+
+    private static getCurrentShift(): string {
+        return new Date().getHours() >= this.SHIFT_THRESHOLD ? "Tarde" : "Manana";
     }
 }

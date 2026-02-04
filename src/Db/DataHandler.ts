@@ -1,24 +1,33 @@
 import DbEnumDir from "../Utils/DbEnumDir";
 import { Database } from "bun:sqlite";
-
+import Logger from "../Utils/Logger";
 
 export default class DbHandler {
-    private _dbInstance: Database | null = null;
+    // STATIC: Compartida entre todas las instancias de servicios
+    private static _dbInstance: Database | null = null;
 
     protected get Db(): Database {
-        if (!this._dbInstance){
+        if (!DbHandler._dbInstance) {
             let dirComposed = DbEnumDir.Root + DbEnumDir.DbName;
-            this._dbInstance = new Database(dirComposed, { create: true, strict: true });
+            DbHandler._dbInstance = new Database(dirComposed, { create: true, strict: true });
         }
-        
-        return this._dbInstance;
+
+        return DbHandler._dbInstance;
+    }
+
+    public static CloseConnection(): void {
+        if (DbHandler._dbInstance) {
+            DbHandler._dbInstance.close();
+            DbHandler._dbInstance = null;
+            Logger.Log("Database connection closed.");
+        }
     }
 
     protected ExecuteQuery(StrQuery: string, params: any[] = []): void {
         try {
             this.Db.run(StrQuery, ...params);
         } catch (error) {
-            console.error(`Error executing query: ${StrQuery}`, error);
+            Logger.LogError(`Error executing query: ${StrQuery} ${error}`);
             throw error;
         }
     }
@@ -28,14 +37,13 @@ export default class DbHandler {
             let toExecute = this.Db.prepare(StrQuery);
             return toExecute.all(...params) as Object[];
         } catch (error) {
-            console.error(`Error executing query: ${StrQuery}`, error);
+            Logger.LogError(`Error executing query: ${StrQuery}`);
             throw error;
         }
     }
 
     protected AddRow(StrQuery: string, params: any[] = []): number {
         try {
-            //Esto estara bien?
             let result = this.Db.prepare(StrQuery).get(...params) as object;
             // Si es un insert con RETURNING, devuelve el valor. Si no, podría ser undefined.
             if (result && typeof result === 'object') {
@@ -43,7 +51,7 @@ export default class DbHandler {
             }
             return 0;
         } catch (error) {
-            console.error(`Error adding row: ${StrQuery}`, error);
+            Logger.LogError(`Error adding row: ${StrQuery}`);
             throw error;
         }
     }
@@ -53,13 +61,18 @@ export default class DbHandler {
             const queryData = this.Db.prepare(StrQuery);
             return queryData.all(...params) as T[];
         } catch (error) {
-            console.error(`Error getting records: ${StrQuery}`, error);
+            Logger.LogError(`Error getting records: ${StrQuery}`);
             throw error;
         }
     }
 
     public RunTransaction(action: () => void): void {
-        const transaction = this.Db.transaction(action);
-        transaction();
+        try {
+            const transaction = this.Db.transaction(action);
+            transaction();
+        } catch (error) {
+            Logger.LogError(`Error executing transaction: ${error}`);
+            throw error;
+        }
     }
 }

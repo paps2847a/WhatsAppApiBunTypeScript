@@ -2,11 +2,11 @@ import pc from "picocolors";
 
 export default class Logger {
     public static Log(LogArgs: any) {
-        console.log(pc.bgYellowBright(JSON.stringify(LogArgs)));
+        console.log(pc.green(JSON.stringify(LogArgs)));
     }
 
     public static LogSuccess(LogArgs: any) {
-        console.log(pc.green(JSON.stringify(LogArgs)));
+        console.log(pc.greenBright(JSON.stringify(LogArgs)));
     }
 
     public static LogError(LogArgs: any) {
