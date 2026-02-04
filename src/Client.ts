@@ -1,4 +1,4 @@
-import { Client, LocalAuth  } from 'whatsapp-web.js';
+import { Client, Events, LocalAuth  } from 'whatsapp-web.js';
 import qrcode from 'qrcode-terminal';
 import GroupSyncHandler from './Handlers/GroupSyncHandler';
 import MessageHandler from './Handlers/MessageHandler';
@@ -19,25 +19,25 @@ client.on('message_reaction', async (reaction) => {
     await ReactionHandler.handleReaction(client, reaction);
 });
 
-client.on('qr', qr => {
+client.on(Events.QR_RECEIVED, qr => {
     qrcode.generate(qr, { small: true });
 });
 
 //La solicitud constante de datos de los grupos y usuarios se ha optimizado pero hay que agregar limitaciones o delay para humanizarlo
-client.on('ready', async () => {
+client.on(Events.READY, async () => {
     GroupSyncHandler.BotWhatsAppId = client.info.wid._serialized;
     MessageHandler.BotWhatsAppId = client.info.wid._serialized;
 
-        // message sync / other startup tasks can be placed here
+    // message sync / other startup tasks can be placed here
     // leave logging to existing utils
     await GroupSyncHandler.syncGroups(client);
 });
 
-client.on('group_join', async (notification) => {
+client.on(Events.GROUP_JOIN, async (notification) => {
     await GroupSyncHandler.handleGroupJoin(client, notification);
 });
 
-client.on('message', async (msg) => {
+client.on(Events.MESSAGE_RECEIVED, async (msg) => {
     await MessageHandler.handleMessage(client, msg);
 });
 

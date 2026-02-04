@@ -1,11 +1,10 @@
 import type { Client } from "whatsapp-web.js";
-import type IBackGroundInterface from "../Utils/IBackGroundInterface";
 import Logger from "../Utils/Logger";
-import GruposService from "../Services/GruposService";
 import type TravelInitOptions from "../Utils/ITravelInitOptions";
+import Randomizer from "../Utils/Randomizer";
 
 
-export default class TravelInitWorker implements IBackGroundInterface {
+export default class TravelInitWorker {
     private worker?: Worker;
     private clientController: Client;
     private options?: TravelInitOptions;
@@ -20,7 +19,7 @@ export default class TravelInitWorker implements IBackGroundInterface {
         const workerUrl = new URL("./TravelInitWorker.worker.ts", import.meta.url).href;
         Logger.Log(`TravelInitWorker: Starting worker at ${workerUrl}`);
 
-        this.worker = new Worker(workerUrl, { type: "module" });
+        this.worker = new Worker(workerUrl);
 
         this.worker.onmessage = async (ev: MessageEvent) => {
             const m = ev.data;
@@ -28,10 +27,14 @@ export default class TravelInitWorker implements IBackGroundInterface {
 
             if (m.type === "reminder") {
                 const { currentShift, groups } = m.data as { currentShift: string, groups: Array<{ NumGrp: string }> };
-                const message = `Recordatorio: Por favor, confirmen quiénes usarán el transporte hoy en el turno de ${currentShift}.`;
+                const message = `Recordatorio: Por favor, confirmen quiénes usarán el transporte en el turno de ${currentShift}.`;
                 try {
-                    const promises = (groups || []).map((g: any) => this.clientController.sendMessage(g.NumGrp, message, { sendSeen: false }));
-                    await Promise.allSettled(promises);
+                    for(let chatSender of groups)
+                    {
+                        this.clientController.sendMessage(chatSender.NumGrp, message)
+                        Bun.sleep(Randomizer.getRandomDelay());
+                    }
+                    
                 } catch (err) {
                     Logger.Log(`TravelInitWorker send error: ${String(err)}`);
                 }
@@ -48,16 +51,5 @@ export default class TravelInitWorker implements IBackGroundInterface {
 
         // Start the worker with options
         this.worker.postMessage({ type: "start", options: this.options });
-    }
-
-    public Stop(): void {
-        if (!this.worker) return;
-        try {
-            this.worker.postMessage({ type: "stop" });
-            this.worker.terminate();
-        } catch (err) {
-            Logger.Log(`Error stopping TravelInitWorker: ${String(err)}`);
-        }
-        this.worker = undefined;
     }
 }

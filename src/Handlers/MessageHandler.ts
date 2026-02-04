@@ -1,146 +1,150 @@
-import { Client, type Chat, type GroupChat, type Message, type Contact } from 'whatsapp-web.js';
+import { Client, type Chat, type Message, type Contact } from 'whatsapp-web.js';
 import UsingTodayService from '../Services/UsingTodayService';
 import GrpRelService from '../Services/GrpRelService';
 import UsuariosService from '../Services/UsuariosService';
 import GruposService from '../Services/GruposService';
 import UsingToday from '../Models/UsingToday';
-import Usuarios from '../Models/Usuarios';
-import GrpRel from '../Models/GrpRel';
-import Grupos from '../Models/Grupos';
+import type Usuarios from '../Models/Usuarios';
+import type GrpRel from '../Models/GrpRel';
+import type Grupos from '../Models/Grupos';
 import Logger from '../Utils/Logger';
 import TlfFormatter from '../Utils/TlfFormatter';
 import DateUtils from '../Utils/DateUtils';
+import SentimentValidator from '../Utils/SentimentValidator';
 
-export type MessageContext = {
+type MessageContext = {
     client: Client;
     msg: Message;
-    ChatRegister: Chat;
-    UserData: Contact;
-    _UsingTransport: UsingTodayService;
-    _GroupRelService: GrpRelService;
-    _UserService: UsuariosService;
-    _GroupService: GruposService;
-    UserDataDb: Usuarios[];
-    GroupDataDb: Grupos[];
-    UsrRelGrp: GrpRel[];
+    chat: Chat;
+    contact: Contact;
+    services: {
+        usingTransport: UsingTodayService;
+        groupRel: GrpRelService;
+        user: UsuariosService;
+        group: GruposService;
+    };
+    user: Usuarios;
+    group: Grupos;
+    relation: GrpRel;
+    shift: string;
+    dateRange: { start: number; end: number };
 };
 
 export default class MessageHandler {
     public static BotWhatsAppId: string = "";
 
+    private static readonly SHIFT_THRESHOLD = 12;
+    private static readonly KEYWORDS = {
+        WHO_GOES: ["quienes van", "quienes usaran"]
+    } as const;
+
     static async handleMessage(client: Client, msg: Message): Promise<void> {
         const ctx = await this.getContext(client, msg);
         if (!ctx) return;
 
-        if (await this.handleMentions(ctx)) return;
-        if (await this.handleUse(ctx)) return;
-        if (await this.handleNoUse(ctx)) return;
+        const body = msg.body?.toLowerCase();
+        if (!body) return;
+
+        if (await this.handleUsageToggle(ctx, body)) return;
+        if (await this.handleMentions(ctx, body)) return;
     }
 
     private static async getContext(client: Client, msg: Message): Promise<MessageContext | null> {
-        const ChatRegister: Chat = await msg.getChat();
-        if (!ChatRegister.isGroup) return null;
+        const chat = await msg.getChat();
+        if (!chat.isGroup) return null;
 
-        const UserData = await msg.getContact();
+        const contact = await msg.getContact();
 
-        const _UsingTransport: UsingTodayService = new UsingTodayService();
-        const _GroupRelService: GrpRelService = new GrpRelService();
-        const _UserService: UsuariosService = new UsuariosService();
-        const _GroupService: GruposService = new GruposService();
+        // Instanciar servicios una sola vez
+        const services = {
+            usingTransport: new UsingTodayService(),
+            groupRel: new GrpRelService(),
+            user: new UsuariosService(),
+            group: new GruposService()
+        };
 
-        const UserDataDb = _UserService.Get("TlfNam = ?", [UserData.id._serialized]) as Usuarios[];
-        if (UserDataDb.length === 0) return null;
+        // Consultas optimizadas con early return
+        const [userDb] = services.user.Get("TlfNam = ?", [contact.id._serialized]) as Usuarios[];
+        if (!userDb) return null;
 
-        const GroupDataDb = _GroupService.Get("NumGrp = ?", [ChatRegister.id._serialized]) as Grupos[];
-        if (GroupDataDb.length === 0) return null;
+        const [groupDb] = services.group.Get("NumGrp = ?", [chat.id._serialized]) as Grupos[];
+        if (!groupDb) return null;
 
-        const UsrRelGrp = _GroupRelService.Get("IdUsr = ? AND IdGrp = ?", [UserDataDb[0]!.IdUsr, GroupDataDb[0]!.IdGrp]) as GrpRel[];
-        if (UsrRelGrp.length === 0) return null;
+        const [relation] = services.groupRel.Get("IdUsr = ? AND IdGrp = ?", [userDb.IdUsr, groupDb.IdGrp]) as GrpRel[];
+        if (!relation) return null;
 
         return {
             client,
             msg,
-            ChatRegister,
-            UserData,
-            _UsingTransport,
-            _GroupRelService,
-            _UserService,
-            _GroupService,
-            UserDataDb,
-            GroupDataDb,
-            UsrRelGrp
+            chat,
+            contact,
+            services,
+            user: userDb,
+            group: groupDb,
+            relation,
+            shift: this.getCurrentShift(),
+            dateRange: DateUtils.GetTodayRange()
         };
     }
 
-    private static async handleMentions(ctx: MessageContext): Promise<boolean> {
-        const { client, msg, _UsingTransport, GroupDataDb, UsrRelGrp, UserData } = ctx;
-        const mencioneString = await msg.getMentions();
-        if (mencioneString.filter((m: any) => m.id._serialized === client.info.wid._serialized).length !== 1) return false;
+    private static async handleMentions(ctx: MessageContext, body: string): Promise<boolean> {
+        const mentions = await ctx.msg.getMentions();
+        const isBotMentioned = mentions.some(m => m.id._serialized === ctx.client.info.wid._serialized);
 
-        const body = msg.body.toLowerCase();
-        if (body.includes("quienes van") || body.includes("quienes usaran")) {
+        if (!isBotMentioned) return false;
 
-            let currentShift = new Date().getHours() >= 12 ? "Tarde" : "Manana";
-            const confirmedUsers = _UsingTransport.GetUsersConfirmed(GroupDataDb[0]!.IdGrp, currentShift);
+        if (this.KEYWORDS.WHO_GOES.some(keyword => body.includes(keyword))) {
+            await this.sendConfirmedUsers(ctx);
+        }
 
-            if (confirmedUsers.length === 0) {
-                await msg.reply(`No hay usuarios confirmados para el turno de la ${currentShift} hoy.`, msg.from, { sendSeen: false });
-            } else {
-                let response = `*Usuarios confirmados para el turno de la ${currentShift}:*\n`;
-                confirmedUsers.forEach((user: any, index: number) => {
-                    response += `${index + 1}. ${user.UserNam} - ${TlfFormatter.FormatNumber(user.TlfNam)}\n`;
-                });
-                await msg.reply(response, msg.from, { sendSeen: false });
-            }
+        return true;
+    }
 
-            Logger.Log(`User ${UserData.pushname} requested confirmed users for shift ${currentShift}.`);
+    private static async sendConfirmedUsers(ctx: MessageContext): Promise<void> {
+        const confirmedUsers = ctx.services.usingTransport.GetUsersConfirmed(ctx.group.IdGrp, ctx.shift);
+
+        const response = confirmedUsers.length === 0
+            ? `No hay usuarios confirmados para el turno de la ${ctx.shift} hoy.`
+            : `*Usuarios confirmados para el turno de la ${ctx.shift}:*\n` +
+            confirmedUsers.map((user, i) =>
+                `${i + 1}. ${user.UserNam} - ${TlfFormatter.FormatNumber(user.TlfNam)}`
+            ).join('\n');
+
+        await ctx.msg.reply(response);
+        Logger.Log(`User ${ctx.contact.pushname} requested confirmed users for shift ${ctx.shift}.`);
+    }
+
+    private static async handleUsageToggle(ctx: MessageContext, body: string): Promise<boolean> {
+        const response = await SentimentValidator.ValidateSentiment(body);
+
+        const usingToday = this.createUsingToday(ctx.relation.IdRel, ctx.shift);
+        if (!response) {
+            ctx.services.usingTransport.UnRegisterUsageIfExists(usingToday, ctx.dateRange.start, ctx.dateRange.end);
             return true;
         }
-        return true; // mention but not handled further
-    }
 
-    private static async handleUse(ctx: MessageContext): Promise<boolean> {
-        const { msg, _UsingTransport, UsrRelGrp, UserData } = ctx;
-        if (!msg.body) return false;
-        if (!msg.body.toLocaleLowerCase().includes("usare")) return false;
+        const wasRegistered = ctx.services.usingTransport.RegisterUsageIfNotExists(
+            usingToday,
+            ctx.dateRange.start,
+            ctx.dateRange.end
+        );
 
-        const currentShift = new Date().getHours() >= 12 ? "Tarde" : "Manana";
-        const { start, end } = DateUtils.GetTodayRange();
-
-        const NewUsingToday = new UsingToday();
-        NewUsingToday.IdRel = UsrRelGrp[0]?.IdRel as number;
-        NewUsingToday.IdUsing = 1;
-        NewUsingToday.Shift = currentShift;
-
-        const wasRegistered = _UsingTransport.RegisterUsageIfNotExists(NewUsingToday, start, end);
-
-        if (wasRegistered)
-            Logger.Log(`Usuario ${UserData.pushname} registrado para usar el servicio hoy (Turno: ${currentShift}).`);
-        // Opcional: Responder al usuario confirmando
-        else
-            Logger.Log(`El Usuario ${UserData.pushname} ya se encontraba registrado para usar el servicio hoy (Turno: ${currentShift}).`);
+        const status = wasRegistered ? "registrado" : "ya se encontraba registrado";
+        Logger.Log(`${wasRegistered ? "Usuario" : "El Usuario"} ${ctx.contact.pushname} ${status} para usar el servicio hoy (Turno: ${ctx.shift}).`);
 
         return true;
     }
 
-    //Trabajar aca, corregir errores
-    private static async handleNoUse(ctx: MessageContext): Promise<boolean> {
-        const { msg, _UsingTransport, UsrRelGrp, UserData } = ctx;
-        if (!msg.body) return false;
-        if (!msg.body.toLocaleLowerCase().includes("no usare")) return false;
+    private static createUsingToday(idRel: number, shift: string): UsingToday {
+        const usingToday = new UsingToday();
+        usingToday.IdRel = idRel;
+        usingToday.IdUsing = 1;
+        usingToday.Shift = shift;
 
-        const currentShift = new Date().getHours() >= 12 ? "Tarde" : "Manana";
-        const { start, end } = DateUtils.GetTodayRange();
+        return usingToday;
+    }
 
-        const NewUsingToday = new UsingToday();
-        NewUsingToday.IdRel = UsrRelGrp[0]?.IdRel as number;
-        NewUsingToday.IdUsing = 1;
-        NewUsingToday.Shift = currentShift;
-
-        const notUsingToday = _UsingTransport.UnRegisterUsageIfExists(NewUsingToday, start, end);
-        
-        //Colocar algun mensaje de loggin, ahora no se me ocurre nada
-
-        return true;
+    private static getCurrentShift(): string {
+        return new Date().getHours() >= this.SHIFT_THRESHOLD ? "Tarde" : "Manana";
     }
 }
