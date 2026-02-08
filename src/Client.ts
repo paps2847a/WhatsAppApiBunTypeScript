@@ -3,6 +3,7 @@ import qrcode from 'qrcode-terminal';
 import GroupSyncHandler from './Handlers/GroupSyncHandler';
 import MessageHandler from './Handlers/MessageHandler';
 import ReactionHandler from './Handlers/ReactionHandler';
+import Logger from './Utils/Logger';
 
 const client: Client = new Client({
     authStrategy: new LocalAuth(),
@@ -31,6 +32,7 @@ client.on(Events.READY, async () => {
     // message sync / other startup tasks can be placed here
     // leave logging to existing utils
     await GroupSyncHandler.syncGroups(client);
+    Logger.Log('Client is ready!');
 });
 
 client.on(Events.GROUP_JOIN, async (notification) => {

@@ -11,6 +11,7 @@ import Logger from '../Utils/Logger';
 import TlfFormatter from '../Utils/TlfFormatter';
 import DateUtils from '../Utils/DateUtils';
 import SentimentValidator from '../Utils/SentimentValidator';
+import { SentimentType } from '../Utils/SentimentValidator';
 
 type MessageContext = {
     client: Client;
@@ -45,8 +46,8 @@ export default class MessageHandler {
         const body = msg.body?.toLowerCase();
         if (!body) return;
 
-        if (await this.handleUsageToggle(ctx, body)) return;
         if (await this.handleMentions(ctx, body)) return;
+        if (await this.handleUsageToggle(ctx, body)) return;
     }
 
     private static async getContext(client: Client, msg: Message): Promise<MessageContext | null> {
@@ -115,11 +116,19 @@ export default class MessageHandler {
     }
 
     private static async handleUsageToggle(ctx: MessageContext, body: string): Promise<boolean> {
+        //MEJORAR MANEJADOR DE CONTEXTO PARA EVITAR CONSULTAS INNECESARIAS CUANDO EL MENSAJE NO CONTIENE PALABRAS CLAVE
         const response = await SentimentValidator.ValidateSentiment(body);
 
+        if(SentimentType.NEUTRAL === response) {
+            // Si el sentimiento es neutral, no hacemos nada. Esto evita errores de interpretación en mensajes ambiguos.
+            Logger.Log(`Mensaje de ${ctx.contact.pushname} no tiene una intención clara (Neutral). No se realizará ninguna acción.`);
+            return true;
+        }
+
         const usingToday = this.createUsingToday(ctx.relation.IdRel, ctx.shift);
-        if (!response) {
+        if (SentimentType.NEGATIVE === response) {
             ctx.services.usingTransport.UnRegisterUsageIfExists(usingToday, ctx.dateRange.start, ctx.dateRange.end);
+            Logger.Log(`Usuario ${ctx.contact.pushname} canceló su uso del servicio.`);
             return true;
         }
 

@@ -13,8 +13,10 @@ export default class GroupSyncHandler {
     static async syncGroups(client: Client) : Promise<void> {
         const UnorderedGroupsData: Chat[] = await client.getChats();
 
+        ///Torre Bel/
+        //Prueba
         const GroupSummaries: GroupChat[] = UnorderedGroupsData.filter((chat): chat is GroupChat =>
-            chat.isGroup && !!chat.id._serialized && !!chat.name && /Torre Bel/i.test(chat.name)
+            chat.isGroup && !!chat.id._serialized && !!chat.name && /Prueba/i.test(chat.name)
         );
 
         if (GroupSummaries.length === 0) return;
