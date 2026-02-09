@@ -5,7 +5,7 @@ import Logger from "../Utils/Logger";
 
 export default class DbCreator {
     public static async CreateDb(): Promise<void> {
-        let dirComposed = DbEnumDir.Root + DbEnumDir.DbName;
+        let dirComposed = DbEnumDir.DbName;
 
         let _instanceDb = new Database(dirComposed, { create: true, strict: true });
         _instanceDb.run("PRAGMA journal_mode = WAL;");
@@ -15,7 +15,7 @@ export default class DbCreator {
 
         // Si el archivo está vacío, ejecutamos el script de creación
         if (tableNumber === 0) {
-            let dirTable = DbEnumDir.Root + DbEnumDir.DbTablesScript;
+            let dirTable = DbEnumDir.DbTablesScript;
 
             let FileSqlText = file(dirTable);
             if (!await FileSqlText.exists())

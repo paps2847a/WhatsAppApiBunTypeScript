@@ -1,7 +1,6 @@
 enum DbEnumDir
 {
-    Root = "src/",
-    DbName = "Db/TravelOps.sqlite",
+    DbName = "TravelOps.db",
     DbTablesScript = "Resources/SqlDbScript.txt"
 }
 

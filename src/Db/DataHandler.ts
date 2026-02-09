@@ -8,8 +8,7 @@ export default class DbHandler {
 
     protected get Db(): Database {
         if (!DbHandler._dbInstance) {
-            let dirComposed = DbEnumDir.Root + DbEnumDir.DbName;
-            DbHandler._dbInstance = new Database(dirComposed, { create: true, strict: true });
+            DbHandler._dbInstance = new Database(DbEnumDir.DbName, { create: true, strict: true });
         }
 
         return DbHandler._dbInstance;
