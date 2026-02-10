@@ -6,7 +6,7 @@ import Grupos from '../Models/Grupos';
 import Usuarios from '../Models/Usuarios';
 import GrpRel from '../Models/GrpRel';
 import Logger from '../Utils/Logger';
-import { sleep, which } from 'bun';
+import { sleep } from 'bun';
 
 export default class GroupSyncHandler {
     public static BotWhatsAppId: string = "";
