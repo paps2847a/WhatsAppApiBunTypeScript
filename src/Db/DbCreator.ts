@@ -5,28 +5,53 @@ import Logger from "../Utils/Logger";
 
 export default class DbCreator {
     public static async CreateDb(): Promise<void> {
-        let dirComposed = DbEnumDir.DbName;
+        const dbPath = DbEnumDir.DbName;
+        let db: Database | null = null;
 
-        let _instanceDb = new Database(dirComposed, { create: true, strict: true });
-        _instanceDb.run("PRAGMA journal_mode = WAL;");
-        
-        let countTablesObj = _instanceDb!.prepare("SELECT COUNT(name) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").get() as object;
-        let tableNumber = Object.values(countTablesObj)[0] as number;
-
-        // Si el archivo está vacío, ejecutamos el script de creación
-        if (tableNumber === 0) {
-            let dirTable = DbEnumDir.DbTablesScript;
-
-            let FileSqlText = file(dirTable);
-            if (!await FileSqlText.exists())
-                throw new Error(`No existe script de configuracion en: ${dirTable}`);
-
-            let SqlSentenceTables = await FileSqlText.text();
-            if (SqlSentenceTables.length == 0)
-                throw new Error("El script de configuracion esta vacio");
+        try {
+            // 1. Inicializar DB con modo estricto
+            db = new Database(dbPath, { create: true, strict: true });
             
-            _instanceDb.run(SqlSentenceTables);
-            Logger.Log("Base de datos inicializada correctamente.");
+            // 2. Optimización de rendimiento
+            db.exec("PRAGMA journal_mode = WAL;");
+            db.exec("PRAGMA synchronous = NORMAL;");
+
+            // 3. Verificar si existen tablas (excluyendo tablas internas de sqlite)
+            const result = db.query("SELECT COUNT(*) as count FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").get() as { count: number };
+            
+            if (result.count === 0) {
+                Logger.Log("Database empty. Starting initialization...");
+
+                const scriptPath = DbEnumDir.DbTablesScript;
+                const scriptFile = file(scriptPath);
+
+                if (!await scriptFile.exists()) {
+                    throw new Error(`Configuration script not found at: ${scriptPath}`);
+                }
+
+                const sqlContent = await scriptFile.text();
+                if (!sqlContent.trim()) {
+                    throw new Error("Configuration script is empty.");
+                }
+
+                // 4. Ejecución atómica (Transacción)
+                // Usamos una función transaccional para asegurar integridad
+                const initDb = db.transaction((sql: string) => {
+                    db!.run(sql); // exec permite múltiples sentencias en bun:sqlite
+                    return true;
+                });
+
+                initDb(sqlContent);
+                Logger.Log("Database initialized successfully with schema.");
+            }
+        } catch (error) {
+            Logger.Log(`Critical error during DB creation: ${error instanceof Error ? error.message : error}`);
+            throw error; 
+        } finally {
+            // 5. Cerrar la conexión temporal para evitar archivos lock (.db-shm, .db-wal) persistentes
+            if (db) {
+                db.close();
+            }
         }
     }
 }

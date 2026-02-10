@@ -6,70 +6,115 @@ import Grupos from '../Models/Grupos';
 import Usuarios from '../Models/Usuarios';
 import GrpRel from '../Models/GrpRel';
 import Logger from '../Utils/Logger';
+import { sleep, which } from 'bun';
 
 export default class GroupSyncHandler {
     public static BotWhatsAppId: string = "";
 
     static async syncGroups(client: Client): Promise<void> {
-        const UnorderedGroupsData: Chat[] = await client.getChats();
+        Logger.Log("Starting group synchronization...");
 
-        ///Torre Bel/
-        //Prueba
-        const GroupSummaries: GroupChat[] = UnorderedGroupsData.filter((chat): chat is GroupChat =>
-            chat.isGroup && !!chat.id._serialized && !!chat.name && /Prueba/i.test(chat.name)
+        // 1. Obtener chats y filtrar de forma eficiente
+        const allChats: Chat[] = await client.getChats();
+        const groupSummaries = allChats.filter((chat): chat is GroupChat =>
+            chat.isGroup && !!chat.id._serialized && /Prueba/i.test(chat.name)
         );
 
-        if (GroupSummaries.length === 0) return;
+        if (groupSummaries.length === 0) {
+            Logger.Log("No groups found matching criteria.");
+            return;
+        }
 
-        const _GroupService: GruposService = new GruposService();
-        const _UsuarioService: UsuariosService = new UsuariosService();
-        const _GroupRelService: GrpRelService = new GrpRelService();
+        Logger.Log(`Found ${groupSummaries.length} group(s) to sync.`);
 
-        for (const group of GroupSummaries) {
+        const _GroupService = new GruposService();
+        const _UsuarioService = new UsuariosService();
+        const _GroupRelService = new GrpRelService();
+
+        // 2. Caché local para evitar hits innecesarios a BD y API de WhatsApp
+        const userCache = new Map<string, number>();
+
+        for (let i = 0; i < groupSummaries.length; i++) {
+            const group = groupSummaries[i] as GroupChat;
             const groupSerializedId = group.id._serialized;
 
-            let GroupData = _GroupService.Get(`NumGrp = ?`, [groupSerializedId]);
+            Logger.Log(`[${i + 1}/${groupSummaries.length}] Syncing group: ${group.name}`);
 
-            if (GroupData.length === 0) {
-                const GroupDataToSave = new Grupos();
-                GroupDataToSave.NumGrp = groupSerializedId;
-                GroupDataToSave.DesGrp = group.name;
-                _GroupService.Add(GroupDataToSave);
-                GroupData = _GroupService.Get(`NumGrp = ?`, [groupSerializedId]);
+            // 3. Optimización de búsqueda de grupo
+            let groupData = _GroupService.Get(`NumGrp = ?`, [groupSerializedId]);
+            let currentGroupId: number;
+
+            if (groupData.length === 0) {
+                const newGroup = new Grupos();
+                newGroup.NumGrp = groupSerializedId;
+                newGroup.DesGrp = group.name;
+                _GroupService.Add(newGroup);
+                const freshGroupData = _GroupService.Get(`NumGrp = ?`, [groupSerializedId]);
+                currentGroupId = freshGroupData[0]?.IdGrp as number;
+            } else {
+                currentGroupId = groupData[0]?.IdGrp as number;
             }
 
-            let currentGroupId = GroupData[0]?.IdGrp as number;
             if (!currentGroupId) continue;
 
-            for (const participant of group.participants) {
+            // 4. Filtrar participantes (excluir bot)
+            const participants = group.participants.filter(p => p.id._serialized !== this.BotWhatsAppId);
+
+            for (const participant of participants) {
                 const participantId = participant.id._serialized;
-                if (this.BotWhatsAppId === participantId) continue;
+                let userId: number | undefined;
 
-                let currentUserId: number = 0;
-                let UserData: Usuarios[] = _UsuarioService.Get(` TlfNam = ?`, [participantId]);
-
-                if (UserData.length === 0) {
-                    let scrappedUserData = await client.getContactById(participant.id._serialized);
-
-                    const NewUserData = new Usuarios();
-                    NewUserData.TlfNam = participantId;
-                    NewUserData.UserNam = scrappedUserData.pushname || "Sin Nombre";
-
-                    currentUserId = _UsuarioService.Add(NewUserData);
+                // Revisar caché primero
+                if (userCache.has(participantId)) {
+                    userId = userCache.get(participantId);
                 } else {
-                    currentUserId = UserData[0]?.IdUsr as number;
+                    // Revisar Base de Datos
+                    const userData = _UsuarioService.Get(`TlfNam = ?`, [participantId]);
+
+                    if (userData.length > 0) {
+                        userId = userData[0]?.IdUsr as number;
+                    } else {
+                        // 5. Gestión de Rate Limiting y Petición a WhatsApp
+                        try {
+                            // Delay dinámico entre 400ms y 800ms para evitar detección de patrones
+                            const jitter = Math.floor(Math.random() * 400) + 400;
+                            await sleep(jitter);
+
+                            Logger.Log(`Fetching contact info for ${participantId}...`);
+                            const contact = await client.getContactById(participantId);
+
+                            const newUser = new Usuarios();
+                            newUser.TlfNam = participantId;
+                            newUser.UserNam = contact.pushname || contact.name || "Sin Nombre";
+
+                            userId = _UsuarioService.Add(newUser);
+                        } catch (error) {
+                            Logger.Log(`Error fetching contact ${participantId}, using fallback.`);
+                            const fallbackUser = new Usuarios();
+                            fallbackUser.TlfNam = participantId;
+                            fallbackUser.UserNam = participantId.split('@')[0] as string;
+                            userId = _UsuarioService.Add(fallbackUser);
+                        }
+                    }
+                    // Alimentar caché
+                    if (userId) userCache.set(participantId, userId);
                 }
 
-                const GroupDataRel = _GroupRelService.Get(` IdUsr = ? AND IdGrp = ?`, [currentUserId, currentGroupId]);
-                if (GroupDataRel.length === 0) {
-                    const NewGroupRel = new GrpRel();
-                    NewGroupRel.IdGrp = currentGroupId;
-                    NewGroupRel.IdUsr = currentUserId;
-                    NewGroupRel.IsAdm = participant.isAdmin ? 1 : 0;
-
-                    _GroupRelService.Add(NewGroupRel);
+                // 6. Sincronizar Relación (solo si no existe)
+                if (userId) {
+                    const relExists = _GroupRelService.Get(`IdUsr = ? AND IdGrp = ?`, [userId, currentGroupId]);
+                    if (relExists.length === 0) {
+                        const newRel = new GrpRel();
+                        newRel.IdGrp = currentGroupId;
+                        newRel.IdUsr = userId;
+                        newRel.IsAdm = participant.isAdmin ? 1 : 0;
+                        _GroupRelService.Add(newRel);
+                    }
                 }
             }
+
+            // Pequeño respiro entre grupos
+            await sleep(1000);
         }
 
         Logger.Log("Group synchronization completed.");
