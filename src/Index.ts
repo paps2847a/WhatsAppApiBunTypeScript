@@ -3,7 +3,6 @@ import DbCreator from "./Db/DbCreator";
 import SentimentValidator from "./Utils/SentimentValidator";
 import TravelInitWorker from "./BackgroundWorkers/TravelInitWorker";
 
-await DbCreator.CreateDb();
 
 //Prueba menor de worker
 //Idea: Crear un worker que se encargue de enviar mensajes en segundo plano a los grupos para organizar viajes
@@ -12,5 +11,5 @@ await DbCreator.CreateDb();
 //     checkIntervalMs: 5 * 60 * 1000 // cada 5 minutos
 // });
 // job.DefineAndRegister();
-
+await DbCreator.CreateDb();
 await client.initialize();
